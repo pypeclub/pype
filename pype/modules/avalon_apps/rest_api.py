@@ -19,7 +19,7 @@ class AvalonRestApi(RestApi):
         project_name = request.url_data["project_name"]
         if not project_name:
             output = {}
-            for project_name in self.dbcon.tables():
+            for project_name in self.dbcon.collections():
                 project = self.dbcon[project_name].find_one({
                     "type": "project"
                 })
