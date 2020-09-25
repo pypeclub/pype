@@ -49,7 +49,7 @@ def get_asset_settings():
         "frameEnd": asset_data.get("frameEnd")
     }
 
-    if os.getenv("AVALONT_TASK") not in ["Render", "render"]:
+    if not os.getenv("AVALON_TASK") in ["Render", "render"]:
         scene_data["resolution_width"] = asset_data.get("resolutionWidth")
         scene_data["resolution_height"] = asset_data.get("resolutionHeight")
 
