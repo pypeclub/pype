@@ -43,19 +43,17 @@ def set_scene_settings(settings):
 
 def get_asset_settings():
     asset_data = lib.get_asset()["data"]
-    fps = asset_data.get("fps")
-    frame_start = asset_data.get("frameStart")
-    frame_end = asset_data.get("frameEnd")
-    resolution_width = asset_data.get("resolutionWidth")
-    resolution_height = asset_data.get("resolutionHeight")
-
-    return {
-        "fps": fps,
-        "frameStart": frame_start,
-        "frameEnd": frame_end,
-        "resolutionWidth": resolution_width,
-        "resolutionHeight": resolution_height
+    scene_data = {
+        "fps": asset_data.get("fps"),
+        "frameStart": asset_data.get("frameStart"),
+        "frameEnd": asset_data.get("frameEnd")
     }
+
+    if os.getenv("AVALONT_TASK") not in ["Render", "render"]:
+        scene_data["resolution_width"] = asset_data.get("resolutionWidth")
+        scene_data["resolution_height"] = asset_data.get("resolutionHeight")
+
+    return scene_data
 
 
 def ensure_scene_settings():
