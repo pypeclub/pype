@@ -1,5 +1,5 @@
+version: 2.1
 
-version: 2
 jobs:
   deploy-website:
     docker:
@@ -14,9 +14,8 @@ jobs:
             git config --global user.name "Website Deployment Script"
             echo "machine github.com login mkolar password $GITHUB_TOKEN" > ~/.netrc
             cd website && yarn install && GIT_USER=mkolar yarn run publish-gh-pages
-
+            
 workflows:
-  version: 2
   build_and_deploy:
     jobs:
       - deploy-website:
