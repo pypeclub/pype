@@ -1,0 +1,62 @@
+.container .wrapper .ImagePanel {
+    margin-top: 30px;
+}
+
+.container .wrapper .ImagePanel h4 {
+    margin: 0 0 10px;
+}
+
+.ImagePanel\.content {
+    line-height: 1.7;
+}
+
+.ImagePanel.image {
+    padding-top: 20px;
+}
+
+#noHeadline p>img {
+    margin: 0 0 0 0;
+}
+
+#noHeadline .ImagePanel\.content {
+    margin: 0 0 0 0;
+}
+
+@media (min-width: 600px) {
+    .ImagePanel {
+        display: flex;
+        align-items: top;
+    }
+
+    .ImagePanel[data-image-align='left'] {
+        flex-direction: row-reverse;
+    }
+
+    .ImagePanel[data-image-align='right'] {
+        flex-direction: row;
+    }
+
+    .ImagePanel[data-image-align='right'] .ImagePanel.image {
+        padding-top: 20px;
+        margin-left: 40px;
+    }
+
+    .ImagePanel[data-image-align='left'] .ImagePanel.image {
+        padding-top: 20px;
+        margin-right: 40px;
+    }
+
+    .ImagePanel.content {
+        flex: 1;
+        text-align: left;
+    }
+
+    .ImagePanel.image {
+        width: 360px;
+        margin-top: 50px;
+    }
+
+    #noHeadline .ImagePanel\.content {
+        margin: 0 0 0 20px;
+    }
+}

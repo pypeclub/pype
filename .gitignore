@@ -59,4 +59,11 @@ coverage.xml
 node_modules/
 package-lock.json
 
+
+# Website
+##################
+website/.docusaurus
+website/node_modules
+
+
 pype/premiere/ppro/js/debug.log

@@ -1,0 +1,557 @@
+/* your custom css */
+@media only screen and (min-device-width: 360px) and (max-device-width: 736px) {}
+
+@media only screen and (min-width: 1024px) {}
+
+@media only screen and (max-width: 1023px) {}
+
+@media only screen and (min-width: 1400px) {}
+
+@media only screen and (min-width: 1500px) {}
+
+
+/* body {
+    font-size: 17px;
+  } */
+
+h2{
+  font-family: "futura-pt", "sans-serif";
+  font-size: 35px
+}
+/*
+p {
+    font-family: "futura-pt", "sans-serif";
+} */
+
+/* a{
+    font-family: "futura-pt", "sans-serif";
+} */
+
+h3 {
+    margin-top: 20px
+}
+
+td {
+    vertical-align: top
+}
+
+td>img {
+    max-width: 25px;
+    max-height: 25px;
+    border-radius: 4px;
+    box-shadow: 0 0 4px 2px rgba(0, 0, 0, 0.3);
+    background-color: #ffffdd;
+    padding: 2px;
+    vertical-align: middle;
+}
+
+figure {
+    margin: 0 0 20px 20px
+}
+
+figure>figcaption {
+    border-top: 2px solid #c0c0c0;
+    background-color: #f0f0f0;
+    font-size: 12px;
+    padding: 2px 5px 5px 5px;
+    border-radius: 0px 0px 4px 4px;
+    box-shadow: 0 0 4px 2px rgba(0, 0, 0, 0.3);
+}
+
+article a {
+  font-weight: bold;
+  color: rgb(10, 25, 64);
+  text-decoration: none;
+}
+
+article a:hover {
+  text-decoration: underline;
+}
+
+
+.alignCenter {
+  text-align: center;
+}
+
+.fixedHeaderContainer header h3 {
+    color: white;
+    font-size: 1em;
+    margin-bottom: 4px;
+}
+
+.sectionDescription{
+  text-align: center;
+  font-weight: 500;
+}
+
+.container .wrapper h2 {
+    color: #282c34;
+    margin-bottom: 30px;
+    padding: 10px 10px;
+    text-align: center;
+}
+
+.noTopMargin {
+    margin-top: 0px;
+}
+
+.container .wrapper h3 {
+      margin-top: 2em
+}
+
+.container .wrapper .imageAlignSide p {
+    margin: 0;
+    margin-bottom: 20px;
+    max-width: 560px;
+}
+
+.lightBackground {
+    background: linear-gradient(-135deg,
+            transparent 0,
+            #f5fffb 40%,
+            rgba(255, 255, 255, .7) 40.01%);
+    background-position: 50% 0;
+    position: relative;
+}
+
+.darkBackground {
+    background: linear-gradient(135deg,
+            rgba(135, 135, 135, .2) 60%,
+            rgba(100, 100, 100, .2) 60.01%);
+    background-position: 50% 0;
+    position: relative;
+    color: black
+}
+
+.darkBackground a, .lightBackground a {
+    color: black;
+}
+
+.lightBackground span, .darkBackground span{
+    font-size: 20px;
+}
+
+.container.darkBackground .wrapper h1, .container.darkBackground .wrapper h2, .container.darkBackground .wrapper h3, .container.darkBackground .wrapper h4, .container.darkBackground .wrapper h5 {
+    border-color: #fff;
+    color: black;
+}
+
+
+.post td>a, .post li>a, p>a {
+    color: green;
+    font-style: italic
+}
+
+.post td>a:hover, .post li>a:hover, p>a:hover {
+    color: grey;
+    text-decoration: underline;
+}
+
+.post {
+    padding: 50px 0px
+}
+
+
+.homeSplashFade {
+    text-align: center;
+    color: white;
+    overflow: hidden;
+    background: linear-gradient(#282c34, #282c34);
+    background: #282c34 url(../img/background.jpg);
+    background-repeat: no-repeat;
+    background-position: 50% 0;
+    background-size: 2205px 1466px;
+    position: relative;
+}
+
+.homeContainer .homeWrapper {
+    padding: 3em 10px;
+    text-align:center;
+}
+
+.homeContainer .homeWrapper p{
+  margin-top: 30px;
+  font-size: 20px;
+  font-weight: 300;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+
+.promoRow .button {
+    display: inline-block;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 6px;
+    margin: 5px 10px;
+    border: 1px solid #777;
+    width: 150px;
+}
+
+.navRow .button {
+    display: inline-block;
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: 6px;
+    margin: 5px 10px;
+    border: 1px solid #777;
+}
+
+.promoSection .navRow .navRowBlock {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 0 -2px;
+}
+
+.button:hover {
+    background: $secondaryColor;
+    color: #fff;
+}
+
+
+.mainContainer {
+    padding: 0px
+}
+
+.docMainWrapper, .navPusher, .post {
+    background: #ffffff url(../img/doc_background_light.jpg);
+    background-repeat: repeat;
+    background-position: 50% 0;
+    background-size: 30px 30px;
+    position: relative;
+}
+
+.projectTitle {
+    font-size: 60px;
+    color: $secondaryColor;
+    line-height: 1;
+    margin-top: 40px;
+    margin-bottom: 20px;
+    font-weight: 700;
+}
+
+.projectTitle .tagline {
+    font-size: 30px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.projectTitle img {
+  border-style: none;
+  box-sizing: content-box;
+  max-width: 350px;
+  width:80%
+}
+
+
+/* START productShowcaseSection */
+
+.productShowcaseSection.paddingBottom {
+    padding-bottom: 80px;
+}
+
+.productShowcaseSection.paddingTop {
+    padding-top: 80px;
+}
+
+.productShowcaseSection .logos img {
+    max-height: 60px;
+    padding: 20px;
+    width: inherit;
+}
+
+.productShowcaseSection .logos img[alt="Kredenc Studio"] {
+    max-height: 45px;
+    padding: 20px;
+    width: inherit;
+}
+
+.productShowcaseSection .logos img[alt="Bionaut"] {
+    max-height: 50px;
+    padding: 20px;
+    width: inherit;
+}
+
+
+.productShowcaseSection .logos img[alt="Incognito"] {
+    max-height: 35px;
+    padding: 20px;
+    width: inherit;
+}
+
+.productShowcaseSection .logos img[alt="The Scope"] {
+    max-height: 20px;
+    padding: 20px;
+    width: inherit;
+}
+
+.productShowcaseSection .logos img[alt="3Bohemians"] {
+    max-height: 14px;
+    padding: 20px;
+    width: inherit;
+}
+
+.productShowcaseSection .logos img[alt="Fresh Films"] {
+    max-height: 25px;
+    padding: 20px;
+    width: inherit;
+}
+
+.productShowcaseSection {
+    padding: 10px;
+    background-position: 50% 0;
+    position: relative;
+    font-size:1.5em
+}
+
+.productShowcaseSection h2 {
+    color: #282c34;
+    font-size: 35px;
+    line-height: 1em;
+    margin-top: 20px;
+    padding: 10px 0;
+    text-align: center;
+}
+
+.productShowcaseSection p {
+    margin: 0 auto;
+    max-width: 700px;
+    padding: 0.8em 0;
+}
+
+/* END productShowcaseSection */
+
+.showcase {
+    -webkit-box-align: center;
+    align-items: center;
+    display: -webkit-box;
+    display: flex;
+    -webkit-box-orient: horizontal;
+    -webkit-box-direction: normal;
+    flex-flow: row wrap;
+    -webkit-box-pack: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.showcase .link {
+    display: -webkit-box;
+    display: flex;
+    -webkit-box-orient: vertical;
+    -webkit-box-direction: normal;
+    flex-direction: column;
+    -webkit-box-pack: justify;
+    justify-content: space-between;
+    height: 180px;
+    margin: 5px;
+    padding: 5px;
+}
+
+.showcase .link img {
+    max-height: 80px;
+    padding: 20px;
+    width: 80px;
+    align-self: center;
+}
+
+.showcase .collab img {
+    max-height: 80px;
+    padding: 20px;
+    align-self: center;
+}
+
+/* START gridBloc  */
+.gridBlock .twoByGridBlock img, .gridBlock .threeByGridBlock img, .gridBlock .fourByGridBlock img {
+    max-width: 100%;
+    margin: 20px;
+}
+
+.container .gridBlock .blockContent a {
+    color: black;
+    font-weight: 500
+}
+
+.container .gridBlock .blockContent h2 {
+    margin-top: 0;
+}
+
+.container .gridBlock .blockContent{
+    margin: 20px
+}
+
+/* END gridBlock */
+
+/* START cardList */
+.cards-list {
+  box-sizing:border-box;
+  color:rgb(77, 78, 83);
+  cursor:default;
+  display:flex;
+  flex-flow:row wrap;
+  text-align:left;
+  justify-content: center;
+}
+
+.cards-list h3{
+  text-align:middle;
+}
+
+.cards-list-item-outer {
+    padding: 10px;
+    width: 250px;
+}
+
+.cards-list-item-outer.medium {
+    width: 200px
+}
+
+.cards-list-item-outer.small {
+    width: 150px;
+}
+
+.cards-list-item-inner {
+    box-shadow: rgba(0,0,0,0.05) 0px 1px 4px 0px, rgba(0,0,0,0.025) 0px 15px 20px -1px;
+    background-color: #fff;
+    border-radius: .3rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.cards-list-item-thumbnail {
+    border-top-left-radius: .3rem;
+    border-top-right-radius: .3rem;
+    overflow: hidden;
+}
+
+.cards-list-item-thumbnail img {
+    border-radius: 0;
+    display: block;
+    margin: 0 auto;
+    max-height: 100%;
+    max-width: 100%;
+    -o-object-fit: cover;
+    object-fit: cover;
+}
+
+.cards-list-item-title {
+    color: #4d4e53;
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.2em;
+    padding: 15px 20px 10px;
+}
+
+.cards-list-item-title.medium,
+.cards-list-item-title.small {
+    font-size: 15px;
+}
+
+.cards-list-item-excerpt {
+    font-size: 0.8rem;
+    padding: 5px 20px 5px;
+}
+
+.cards-list-item-more {
+  display:flex;
+  font-size:12.8px;
+  font-weight:700;
+  padding-bottom:24px;
+  padding-left:24px;
+  padding-right:24px;
+  padding-top:0px;
+}
+
+.ml-auto, .mx-auto, .trainer-thumbnail img {
+    margin-left: auto !important;
+}
+
+/* END cardsList */
+
+
+
+.promoRow .pluginRowBlock img {
+    max-height: 80px;
+    padding:20px;
+    vertical-align: middle;
+}
+
+/* .promoRow .pluginRowBlock img[alt="kredenc"] {
+    max-height: 60px;
+    padding:20px;
+    vertical-align: middle;
+} */
+
+.promoSection .promoRow .partners {
+    vertical-align: middle;
+    display: inherit;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 0 -2px;
+}
+
+.navigationSlider .slidingNav ul li a {
+    color: #fff;
+    font-weight: 400;
+}
+
+.navigationSlider .slidingNav ul li>a:focus,
+.navigationSlider .slidingNav ul li>a:hover,
+.navigationSlider .slidingNav ul li.siteNavGroupActive,
+.navigationSlider .slidingNav ul li.siteNavItemActive>a {
+    color: $secondaryColor;
+    font-weight: 400;
+    background-color: #20232a;
+    transition: 0.3s;
+}
+
+.fixedHeaderContainer {
+    background: #000;
+    background-color: #20232a;
+}
+
+.fixedHeaderContainer header .headerTitle {
+    color: $secondaryColor;
+    font-weight: 700;
+}
+
+
+
+
+#outline td {
+    width: 35%;
+}
+
+.post th, .post tr, .post td {
+    border: none !important;
+}
+
+.post th {
+    background-color: #f2f2f2;
+}
+
+#tutorials {
+    display: grid;
+    grid-gap: 0px;
+    grid-template-columns: repeat(auto-fit, 240px);
+    position: relative;
+}
+
+#video {
+    position: relative;
+    margin: 10px;
+    padding: 10px;
+}
+
+#video h3 {
+    margin-top: 0px
+}
+
+#video iframe {
+    width: 240px;
+    height: 135px;
+    border-radius: 4px;
+    box-shadow: 0 0 10px 1px rgba(0, 0, 0, 0.3);
+}

@@ -1,0 +1,56 @@
+/* setting default look */
+.mainContainer .wrapper .Screenshot>p>img {
+    min-width: 250px;
+    margin: 0px 20px;
+    border-radius: 4px;
+    box-shadow: 0 0 10px 1px rgba(0, 0, 0, 0.3);
+}
+
+/* image with caption */
+.Screenshot>figure>p {
+    margin-bottom: 0px;
+}
+
+.Screenshot>figure>p>img {
+    min-width: 350px;
+    border-radius: 4px 4px 0px 0px;
+    box-shadow: 0 0 4px 2px rgba(0, 0, 0, 0.3);
+    background-color: #ffffdd;
+}
+
+/* setting look inside of info panel */
+.mainContainer .wrapper .admonition-content .Screenshot>p>img {
+    margin: 0 20px 0 0;
+}
+
+/* setting look for mobile media */
+@media (max-width: 600px) {
+    .mainContainer .wrapper .Screenshot>p>img {
+        margin-top: 0;
+    }
+
+}
+
+/* image with caption */
+.Screenshot>figure>p {
+    margin-bottom: 0px;
+}
+
+.Screenshot>figure>p>img {
+    min-width: 350px;
+    border-radius: 4px 4px 0px 0px;
+    box-shadow: 0 0 4px 2px rgba(0, 0, 0, 0.3);
+    background-color: #ffffdd;
+}
+
+/* setting look inside of info panel */
+.mainContainer .wrapper .admonition-content .Screenshot>p>img {
+    margin: 0 20px 0 0;
+}
+
+/* setting look for mobile media */
+@media (max-width: 600px) {
+    .mainContainer .wrapper .Screenshot>p>img {
+        margin-top: 0;
+    }
+}
