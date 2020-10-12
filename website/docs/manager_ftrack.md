@@ -59,4 +59,4 @@ There are certain situations that are very hard, or even impossible to handle au
 
 If you need to move entity or change it's name it is possible only in the acse when no-one has worked on it yet. Once work is in progreess, you must archive the old one and create new.
 
-To archive entities you should use [Archive Asset/Subset](manager_ftrack_actions#delete-asset/subset) action. This will remove the selected entity from ftrack and avalon database in mostly non-destructive way, so it can be recovered later. To completely delete all traces of this such entity you'll need to go to [pype archive](pype_archive)s and delete them from there.
+To archive entities you should use [Archive Asset/Subset](manager_ftrack_actions#delete-asset/subset) action. This will remove the selected entity from ftrack and avalon database in mostly non-destructive way, so it can be recovered later. To completely delete all traces of this such entity you'll need to go to pype archive and delete them from there.

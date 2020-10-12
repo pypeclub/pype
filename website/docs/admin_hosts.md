@@ -250,7 +250,7 @@ Pype integration needs:
 * *Python Script Plugin enabled* (done automatically)
 * *Editor Scripting Utilities* (done automatically)
 * *PySide* installed in Unreal Python 2 (or PySide2/PyQt5 if you've build Unreal Editor with Python 3 support) (done automatically)
-* *Avalon Unreal Integration plugin* ([sources are on GitHub]((https://github.com/pypeclub/avalon-unreal-integration)))
+* *Avalon Unreal Integration plugin* ([sources are on GitHub](https://github.com/pypeclub/avalon-unreal-integration))
 * *Visual Studio 2017* is needed to build *Avalon Unreal Integration Plugin* and/or if you need to work in `dev_mode`
 
 ### Environment Variables

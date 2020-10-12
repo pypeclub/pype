@@ -64,6 +64,7 @@ package-lock.json
 ##################
 website/.docusaurus
 website/node_modules
+website/build
 
 
 pype/premiere/ppro/js/debug.log

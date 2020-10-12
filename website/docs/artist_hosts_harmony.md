@@ -123,6 +123,6 @@ You can switch to a previous version of the image or update to the latest.
 
 :::note
 Images and image sequences will be loaded into the scene as read nodes can coloured green. On startup the pipeline checks for any outdated read nodes and colours them red.
-- <span style="color:green">**Green**</span> = Up to date version in scene.
-- <span style="color:red">**Red**</span> = Outdated version in scene.
+- <span style={{color:'green'}}>**Green**</span> = Up to date version in scene.
+- <span style={{color:'red'}}>**Red**</span> = Outdated version in scene.
 :::
