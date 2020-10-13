@@ -13,10 +13,10 @@ module.exports = {
     [
       '@docusaurus/preset-classic', {
         docs: {
-          sidebarPath: require.resolve('./sidebars.js'),
+          sidebarPath: require.resolve('./pype/sidebars.js'),
         },
         theme: {
-          customCss: require.resolve('./src/css/custom.css')
+          customCss: require.resolve('./pype/src/css/custom.css')
         }
       }
     ]
@@ -65,15 +65,15 @@ module.exports = {
           items: [
             {
               label: 'Artist',
-              to: 'docs/artist_getting_started',
+              to: 'pype/docs/artist_getting_started',
             },
             {
               label: 'Manager',
-              to: 'docs/manager_ftrack',
+              to: 'pype/docs/manager_ftrack',
             },
             {
               label: 'Admin',
-              to: 'docs/admin_config',
+              to: 'pype/docs/admin_config',
             },
           ],
         },{
