@@ -2,7 +2,7 @@ module.exports = {
   title: 'PYPE',
   tagline: 'code . training . support',
   url: 'http://pype.club/',
-  baseUrl: 'pype/',
+  baseUrl: '',
   organizationName: 'pypeclub',
   projectName: 'pype',
   favicon: 'img/favicon/favicon.ico',
@@ -13,10 +13,10 @@ module.exports = {
     [
       '@docusaurus/preset-classic', {
         docs: {
-          sidebarPath: require.resolve('./pype/sidebars.js'),
+          sidebarPath: require.resolve('./sidebars.js'),
         },
         theme: {
-          customCss: require.resolve('./pype/src/css/custom.css')
+          customCss: require.resolve('./src/css/custom.css')
         }
       }
     ]
@@ -65,15 +65,15 @@ module.exports = {
           items: [
             {
               label: 'Artist',
-              to: 'pype/docs/artist_getting_started',
+              to: 'docs/artist_getting_started',
             },
             {
               label: 'Manager',
-              to: 'pype/docs/manager_ftrack',
+              to: 'docs/manager_ftrack',
             },
             {
               label: 'Admin',
-              to: 'pype/docs/admin_config',
+              to: 'docs/admin_config',
             },
           ],
         },{
