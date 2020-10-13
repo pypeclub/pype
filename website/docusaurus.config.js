@@ -2,7 +2,7 @@ module.exports = {
   title: 'PYPE',
   tagline: 'code . training . support',
   url: 'http://pype.club/',
-  baseUrl: '',
+  baseUrl: '/',
   organizationName: 'pypeclub',
   projectName: 'pype',
   favicon: 'img/favicon/favicon.ico',
