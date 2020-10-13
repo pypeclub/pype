@@ -1,11 +1,12 @@
 module.exports = {
   title: 'PYPE',
   tagline: 'code . training . support',
-  url: 'https://pypeclub.github.io/',
-  baseUrl: '/',
+  url: 'http://pype.club/',
+  baseUrl: 'pype/',
   organizationName: 'pypeclub',
   projectName: 'pype',
   favicon: 'img/favicon/favicon.ico',
+  onBrokenLinks: 'ignore',
   customFields: {
   },
   presets: [
