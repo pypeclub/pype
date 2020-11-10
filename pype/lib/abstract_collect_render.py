@@ -13,6 +13,7 @@ from avalon import api
 import pyblish.api
 
 from .abstract_expected_files import ExpectedFiles
+from .abstract_metaplugins import AbstractMetaContextPlugin
 
 
 @attr.s
@@ -101,8 +102,7 @@ class RenderInstance(object):
             raise ValueError("both tiles X a Y sizes are set to 1")
 
 
-@six.add_metaclass(ABCMeta)
-class AbstractCollectRender(pyblish.api.ContextPlugin):
+class AbstractCollectRender(AbstractMetaContextPlugin):
     """Gather all publishable render layers from renderSetup."""
 
     order = pyblish.api.CollectorOrder + 0.01
@@ -117,22 +117,10 @@ class AbstractCollectRender(pyblish.api.ContextPlugin):
 
     def process(self, context):
         """Entry point to collector."""
-        rendering_instance = None
         for instance in context:
-            if "rendering" in instance.data["families"]:
-                rendering_instance = instance
-                rendering_instance.data["remove"] = True
-
             # make sure workfile instance publishing is enabled
             if "workfile" in instance.data["families"]:
                 instance.data["publish"] = True
-
-        if not rendering_instance:
-            self.log.info(
-                "No rendering instance found, skipping render "
-                "layer collection."
-            )
-            return
 
         self._file_path = context.data["currentFile"].replace("\\", "/")
 
