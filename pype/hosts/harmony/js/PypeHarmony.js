@@ -74,7 +74,8 @@ PypeHarmony.getSceneSettings = function() {
         scene.getStopFrame(),
         sound.getSoundtrackAll().path(),
         scene.defaultResolutionX(),
-        scene.defaultResolutionY()
+        scene.defaultResolutionY(),
+        scene.defaultResolutionFOV()
     ];
 };
 
@@ -195,3 +196,16 @@ PypeHarmony.getDependencies = function(node) {
     }
     return dependencies;
 };
+
+
+/**
+ * return version of running Harmony instance.
+ * @function
+ * @return  {array} [major_version, minor_version]
+ */
+PypeHarmony.getVersion = function() {
+    return [
+        about.getMajorVersion(),
+        about.getMinorVersion()
+    ];
+}

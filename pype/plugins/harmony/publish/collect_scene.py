@@ -30,9 +30,17 @@ class CollectScene(pyblish.api.ContextPlugin):
         context.data["audioPath"] = result[6]
         context.data["resolutionWidth"] = result[7]
         context.data["resolutionHeight"] = result[8]
+        context.data["FOV"] = result[9]
 
         all_nodes = harmony.send(
             {"function": "node.subNodes", "args": ["Top"]}
         )["result"]
 
         context.data["allNodes"] = all_nodes
+
+        result = harmony.send(
+            {
+                f"function": "PypeHarmony.getVersion",
+                "args": []}
+        )["result"]
+        context.data["harmonyVersion"] = "{}.{}".format(result[0], result[1])
