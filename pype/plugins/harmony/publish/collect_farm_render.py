@@ -3,11 +3,19 @@
 import json
 from pathlib import Path
 
-import pyblish.api
+import attr
 from avalon import harmony, api
 
 import pype.lib.abstract_collect_render
 from pype.lib.abstract_collect_render import RenderInstance
+
+
+@attr.s
+class HarmonyRenderInstance(RenderInstance):
+    outputType = attr.ib(default="Image")
+    leadingZeros = attr.ib(default=3),
+    outputFormat = attr.ib(default="PNG4")
+    outputStartFrame = attr.ib(default=1)
 
 
 class CollectFarmRender(
@@ -48,7 +56,6 @@ class CollectFarmRender(
         end = render_instance.frameEnd
         node = render_instance.setMembers[0]
         self_name = self.__class__.__name__
-
         # 0 - filename / 1 - type / 2 - zeros / 3 - start
         info = harmony.send(
             {
@@ -57,7 +64,6 @@ class CollectFarmRender(
                 "args": node
             })["result"]
 
-        render_instance.renderer = info[1]
         ext = None
         for k, v in self.ext_mapping.items():
             if info[1] in v:
@@ -90,6 +96,8 @@ class CollectFarmRender(
 
         instances = []
 
+        self_name = self.__class__.__name__
+
         for node in context.data["allNodes"]:
             data = harmony.read(node)
 
@@ -104,9 +112,17 @@ class CollectFarmRender(
             if data["family"] != "renderFarm":
                 continue
 
+            # 0 - filename / 1 - type / 2 - zeros / 3 - start
+            info = harmony.send(
+                {
+                    "function": f"PypeHarmony.Publish.{self_name}."
+                                "getRenderNodeSettings",
+                    "args": node
+                })["result"]
+
             # TODO: handle pixel aspect and frame step
             # TODO: set Deadline stuff (pools, priority, etc. by presets)
-            render_instance = RenderInstance(
+            render_instance = HarmonyRenderInstance(
                 version=version,
                 time=api.time(),
                 source=context.data["currentFile"],
@@ -139,11 +155,15 @@ class CollectFarmRender(
                 frameStep=1
             )
 
+            render_instance.outputType = "Image",
+            render_instance.leadingZeros = info[2],
+            render_instance.outputFormat = info[1],
+            render_instance.outputStartFrame = info[3]
             instances.append(render_instance)
 
         return instances
 
     def add_additional_data(self, instance):
-        instance["FOV"] = self._context["FOV"]
+        instance["FOV"] = self._context.data["FOV"]
 
         return instance

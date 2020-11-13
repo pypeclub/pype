@@ -146,6 +146,30 @@ class PluginInfo:
     def OutputPath(self, val):  # noqa: N802
         self._outputPath.append(val)
 
+    def set_output(self, node, image_format, output,
+                   output_type="Image", zeros=3, start_frame=1):
+        """Helper to set output.
+
+        This should be used instead of setting properties individually
+        as so index remain consistent.
+
+        Args:
+            node (str): harmony write node name
+            image_format (str): format of output (PNG4, TIF, ...)
+            output (str): output path
+            output_type (str, optional): "Image" or "Movie" (not supported).
+            zeros (int, optional): Leading zeros (for 0001 = 3)
+            start_frame (int, optional): Sequence offset.
+
+        """
+
+        self.OutputNode = node
+        self.OutputFormat = image_format
+        self.OutputPath = output
+        self.OutputType = output_type
+        self.OutputLeadingZero = zeros
+        self.OutputStartFrame = start_frame
+
 
 class HarmonySubmitDeadline(
         pype.lib.abstract_submit_deadline.AbstractSubmitDeadline):
@@ -185,7 +209,13 @@ class HarmonySubmitDeadline(
             Version=(
                 self._instance.context.data["harmonyVersion"].split(".")[0]),
             FieldOfView=self._instance.context.data["FOV"],
-            ResolutionX=
-
-
+            ResolutionX=self._instance.data["resolutionWidth"],
+            ResolutionY=self._instance.data["resolutionHeight"]
         )
+        """
+        harmony_plugin_info.set_output(
+            self._instance.context.data["setMembers"][0],
+            self._instance.data["outputFormat"]
+        )
+        """
+        return attr.asdict(harmony_plugin_info)
