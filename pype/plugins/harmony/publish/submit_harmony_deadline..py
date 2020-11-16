@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 """Submitting render job to Deadline."""
 import os
+from pathlib import Path
 
 import attr
 import pyblish.api
 
 import pype.lib.abstract_submit_deadline
+from pype.lib.abstract_submit_deadline import DeadlineJobInfo
 
 
 @attr.s
@@ -198,24 +200,64 @@ class HarmonySubmitDeadline(
     else:
         optional = True
 
-    use_published = True
+    use_published = False
+    primary_pool = ""
+    secondary_pool = ""
+    priority = 50
 
     def get_job_info(self):
-        pass
+        job_info = DeadlineJobInfo(plugin="Harmony")
+        job_info.Name = self._instance.data["name"]
+        job_info.Frames = "{}-{}".format(
+            self._instance.data["frameStart"],
+            self._instance.data["frameEnd"]
+        )
+        job_info.Priority = self.priority
+        job_info.Pool = self.pool
+        job_info.SecondaryPool = self.secondary_pool
+
+        return job_info
 
     def get_plugin_info(self):
+        work_scene = Path(self._instance.data["source"])
+        published_scene = Path(
+            self.from_published_scene(self, replace_in_path=False))
+
+        render_path = published_scene.parent / "render"
+
+        self.log.info("switching render paths for published scene:\n "
+                      f"{work_scene.parent.as_posix()} -> "
+                      f"{render_path.as_posix()}")
+
+        new_expected_files = []
+        for file in self._instance.data["expectedFiles"]:
+            new_expected_files.append(
+                file.replace(
+                    work_scene.parent.as_posix(),
+                    render_path.as_posix()
+                )
+            )
+
+        self._instance.data["source"] = published_scene.as_posix()
+        self._instance.data["expectedFiles"] = new_expected_files
+
         harmony_plugin_info = PluginInfo(
-            SceneFile=self._instance.data["source"],
+            SceneFile=published_scene.as_posix(),
             Version=(
                 self._instance.context.data["harmonyVersion"].split(".")[0]),
             FieldOfView=self._instance.context.data["FOV"],
             ResolutionX=self._instance.data["resolutionWidth"],
             ResolutionY=self._instance.data["resolutionHeight"]
         )
-        """
+
         harmony_plugin_info.set_output(
             self._instance.context.data["setMembers"][0],
-            self._instance.data["outputFormat"]
+            self._instance.data["outputFormat"],
+            render_path,
+            self._instance.data["outputType"],
+            self._instance.data["leadingZeros"],
+            self._instance.data["outputStartFrame"]
         )
-        """
+
         return attr.asdict(harmony_plugin_info)
+

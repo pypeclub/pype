@@ -80,7 +80,7 @@ class CollectFarmRender(
         for frame in range(start, end):
             expected_files.append(
                 path / "{}{}.{}".format(
-                    info[1],
+                    info[0],
                     str(frame).rjust(int(info[2]) + 1, "0"),
                     ext
                 )
