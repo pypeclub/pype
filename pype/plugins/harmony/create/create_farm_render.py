@@ -18,10 +18,10 @@ class CreateFarmRender(harmony.Creator):
     def setup_node(self, node):
         """Set render node."""
         self_name = self.__class__.__name__
-        path = "{0}/{0}".format(node.split("/")[-1])
+        path = "render/{0}/{0}.".format(node.split("/")[-1])
         harmony.send(
             {
-                "function": f"PypeHarmony.Creators.{self_name}.create",
+                "function": f"PypeHarmony.Creators.CreateRender.create",
                 "args": [node, path]
             })
         harmony.send(

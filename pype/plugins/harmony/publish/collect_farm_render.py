@@ -13,9 +13,9 @@ from pype.lib.abstract_collect_render import RenderInstance
 @attr.s
 class HarmonyRenderInstance(RenderInstance):
     outputType = attr.ib(default="Image")
-    leadingZeros = attr.ib(default=3),
     outputFormat = attr.ib(default="PNG4")
     outputStartFrame = attr.ib(default=1)
+    leadingZeros = attr.ib(default=3)
 
 
 class CollectFarmRender(
@@ -138,7 +138,7 @@ class CollectFarmRender(
                 name=node.split("/")[1],
 
                 family="renderlayer",
-                families="renderlayer",
+                families=["renderlayer"],
 
                 resolutionWidth=context.data["resolutionWidth"],
                 resolutionHeight=context.data["resolutionHeight"],
@@ -152,13 +152,14 @@ class CollectFarmRender(
                 # time settings
                 frameStart=context.data["frameStart"],
                 frameEnd=context.data["frameEnd"],
-                frameStep=1
-            )
+                frameStep=1,
+                outputType="Image",
+                outputFormat=info[1],
+                outputStartFrame=info[3],
+                leadingZeros=3
 
-            render_instance.outputType = "Image",
-            render_instance.leadingZeros = info[2],
-            render_instance.outputFormat = info[1],
-            render_instance.outputStartFrame = info[3]
+            )
+            self.log.debug(render_instance)
             instances.append(render_instance)
 
         return instances

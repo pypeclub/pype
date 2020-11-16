@@ -2,6 +2,7 @@
 """Submitting render job to Deadline."""
 import os
 from pathlib import Path
+from collections import OrderedDict
 
 import attr
 import pyblish.api
@@ -11,7 +12,7 @@ from pype.lib.abstract_submit_deadline import DeadlineJobInfo
 
 
 @attr.s
-class PluginInfo:
+class PluginInfo(object):
     """Plugin info structure for Harmony Deadline plugin."""
 
     SceneFile = attr.ib()
@@ -172,6 +173,31 @@ class PluginInfo:
         self.OutputLeadingZero = zeros
         self.OutputStartFrame = start_frame
 
+    def serialize(self):
+        """Return all data serialized as dictionary.
+
+        Returns:
+            OrderedDict: all serialized data.
+
+        """
+        def filter_data(a, v):
+            if a.name.startswith("_"):
+                return False
+            if v is None:
+                return False
+            return True
+
+        serialized = attr.asdict(
+            self, dict_factory=OrderedDict, filter=filter_data)
+        serialized.update(self.OutputNode)
+        serialized.update(self.OutputFormat)
+        serialized.update(self.OutputPath)
+        serialized.update(self.OutputType)
+        serialized.update(self.OutputLeadingZero)
+        serialized.update(self.OutputStartFrame)
+
+        return serialized
+
 
 class HarmonySubmitDeadline(
         pype.lib.abstract_submit_deadline.AbstractSubmitDeadline):
@@ -206,14 +232,14 @@ class HarmonySubmitDeadline(
     priority = 50
 
     def get_job_info(self):
-        job_info = DeadlineJobInfo(plugin="Harmony")
+        job_info = DeadlineJobInfo("Harmony")
         job_info.Name = self._instance.data["name"]
         job_info.Frames = "{}-{}".format(
             self._instance.data["frameStart"],
             self._instance.data["frameEnd"]
         )
         job_info.Priority = self.priority
-        job_info.Pool = self.pool
+        job_info.Pool = self.primary_pool
         job_info.SecondaryPool = self.secondary_pool
 
         return job_info
@@ -221,7 +247,7 @@ class HarmonySubmitDeadline(
     def get_plugin_info(self):
         work_scene = Path(self._instance.data["source"])
         published_scene = Path(
-            self.from_published_scene(self, replace_in_path=False))
+            self.from_published_scene(False))
 
         render_path = published_scene.parent / "render"
 
@@ -231,14 +257,14 @@ class HarmonySubmitDeadline(
 
         new_expected_files = []
         for file in self._instance.data["expectedFiles"]:
+            _file = str(Path(file).as_posix())
+            _work_path = str(work_scene.parent.as_posix())
+            _render_path = str(render_path.as_posix())
             new_expected_files.append(
-                file.replace(
-                    work_scene.parent.as_posix(),
-                    render_path.as_posix()
-                )
+                _file.replace(_work_path, _render_path)
             )
 
-        self._instance.data["source"] = published_scene.as_posix()
+        self._instance.data["source"] = str(published_scene.as_posix())
         self._instance.data["expectedFiles"] = new_expected_files
 
         harmony_plugin_info = PluginInfo(
@@ -251,13 +277,13 @@ class HarmonySubmitDeadline(
         )
 
         harmony_plugin_info.set_output(
-            self._instance.context.data["setMembers"][0],
+            self._instance.data["setMembers"][0],
             self._instance.data["outputFormat"],
-            render_path,
+            str(render_path.as_posix()),
             self._instance.data["outputType"],
             self._instance.data["leadingZeros"],
             self._instance.data["outputStartFrame"]
         )
 
-        return attr.asdict(harmony_plugin_info)
+        return harmony_plugin_info.serialize()
 
