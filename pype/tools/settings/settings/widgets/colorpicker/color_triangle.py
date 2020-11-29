@@ -77,7 +77,11 @@ class QtColorTriangle(QtWidgets.QWidget):
         self.setColor(color)
 
     def setColor(self, col):
-        if col == self.cur_color:
+        if (
+            col.red() == self.cur_color.red()
+            and col.green() == self.cur_color.green()
+            and col.blue() == self.cur_color.blue()
+        ):
             return
 
         self.cur_color = col
