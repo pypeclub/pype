@@ -39,6 +39,7 @@ class QtColorTriangle(QtWidgets.QWidget):
     inner_radius_ratio = 5.0
     ellipse_size_ratio = 10.0
     ellipse_thick_ratio = 50.0
+    hue_offset = 90
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -72,7 +73,7 @@ class QtColorTriangle(QtWidgets.QWidget):
         self.sel_mode = IdleState
 
         color = QtGui.QColor()
-        color.setHsv(76, 184, 206)
+        color.setHsv(0, 255, 255)
         self.setColor(color)
 
     def setColor(self, col):
@@ -87,7 +88,8 @@ class QtColorTriangle(QtWidgets.QWidget):
         if hue != -1:
             self.cur_hue = hue
 
-        self.angle_a = (((360 - self.cur_hue) * TWOPI) / 360.0)
+        angle_with_offset = (360 - self.cur_hue - self.hue_offset) % 360
+        self.angle_a = (angle_with_offset * TWOPI) / 360.0
         self.angle_a += PI / 2.0
         if self.angle_a > TWOPI:
             self.angle_a -= TWOPI
@@ -279,8 +281,9 @@ class QtColorTriangle(QtWidgets.QWidget):
             am = self.angle_a - (PI / 2)
             if am < 0:
                 am += TWOPI
-
-            self.cur_hue = 360 - int(((am) * 360.0) / TWOPI)
+            self.cur_hue = (
+                360 - int((am * 360.0) / TWOPI) - self.hue_offset
+            ) % 360
             hue, sat, val, _ = self.cur_color.getHsv()
 
             if self.cur_hue != hue:
@@ -368,7 +371,9 @@ class QtColorTriangle(QtWidgets.QWidget):
             if am < 0:
                 am += TWOPI
 
-            self.cur_hue = 360 - int((am * 360.0) / TWOPI)
+            self.cur_hue = (
+                360 - int((am * 360.0) / TWOPI) - self.hue_offset
+            ) % 360
             hue, sat, val, _ = self.cur_color.getHsv()
 
             if hue != self.cur_hue:
@@ -746,7 +751,7 @@ class QtColorTriangle(QtWidgets.QWidget):
         ac_deltay = self.point_c.y() - self.point_a.y()
 
         # Extract the h,s,v values of col.
-        hue, sat, val, _a = col.getHsv()
+        _, sat, val, _ = col.getHsv()
 
         # Find the line that passes through the triangle where the value
         # is equal to our color's value.
@@ -763,8 +768,6 @@ class QtColorTriangle(QtWidgets.QWidget):
         q4 = self.point_b.y()
 
         # Find the intersection between these lines.
-        x = 0
-        y = 0
         if p1 != p2:
             a = (q2 - q1) / (p2 - p1)
             c = (q4 - q3) / (p4 - p3)
@@ -1050,7 +1053,9 @@ class QtColorTriangle(QtWidgets.QWidget):
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.fillRect(self.bg_image.rect(), self.palette().mid())
 
-        gradient = QtGui.QConicalGradient(self.bg_image.rect().center(), 90)
+        gradient = QtGui.QConicalGradient(
+            self.bg_image.rect().center(), 90 - self.hue_offset
+        )
 
         color = QtGui.QColor()
         idx = 0.0
@@ -1079,30 +1084,32 @@ class QtColorTriangle(QtWidgets.QWidget):
         painter.save()
         painter.setClipPath(path)
         painter.fillRect(self.bg_image.rect(), gradient)
+
         painter.restore()
 
-        pen_thickness = float(self.bg_image.width() / 400.0)
-
-        for f in range(0, 5760 + 1, 20):
-            value = int(
-                (0.5 + cos(((f - 1800) / 5760.0) * TWOPI) / 2) * 255.0
-            )
-
-            color.setHsv(
-                int((f / 5760.0) * 360.0),
-                int(128 + (255 - value) / 2),
-                int(255 - (255 - value) / 4)
-            )
-            painter.setPen(QtGui.QPen(color, pen_thickness))
-            painter.drawArc(inner_radius_rect, 1440 - f, 20)
-
-            color.setHsv(
-                int((f / 5760.0) * 360.0),
-                int(128 + value / 2),
-                int(255 - value / 4)
-            )
-            painter.setPen(QtGui.QPen(color, pen_thickness))
-            painter.drawArc(outer_radius_rect, 2880 - 1440 - f, 20)
+        # # Circle borders
+        # pen_thickness = float(self.bg_image.width() / 400.0)
+        #
+        # for f in range(0, 5760 + 1, 20):
+        #     value = int(
+        #         (0.5 + cos(((f - 1800) / 5760.0) * TWOPI) / 2) * 255.0
+        #     )
+        #
+        #     color.setHsv(
+        #         int((f / 5760.0) * 360.0),
+        #         int(128 + (255 - value) / 2),
+        #         int(255 - (255 - value) / 4)
+        #     )
+        #     painter.setPen(QtGui.QPen(color, pen_thickness))
+        #     painter.drawArc(inner_radius_rect, 1440 - f, 20)
+        #
+        #     color.setHsv(
+        #         int((f / 5760.0) * 360.0),
+        #         int(128 + value / 2),
+        #         int(255 - value / 4)
+        #     )
+        #     painter.setPen(QtGui.QPen(color, pen_thickness))
+        #     painter.drawArc(outer_radius_rect, 2880 - 1440 - f, 20)
 
         painter.end()
 
