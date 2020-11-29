@@ -187,7 +187,7 @@ class QtColorTriangle(QtWidgets.QWidget):
         self.update()
 
     def paintEvent(self, event):
-        p = QtGui.QPainter(self)
+        painter = QtGui.QPainter(self)
         if event.rect().intersects(self.contentsRect()):
             event_region = event.region()
             if hasattr(event_region, "intersect"):
@@ -196,7 +196,7 @@ class QtColorTriangle(QtWidgets.QWidget):
                 clip_region = event_region.intersected(
                     self.contentsRect()
                 )
-            p.setClipRegion(clip_region)
+            painter.setClipRegion(clip_region)
 
         if self._generate_bg:
             self.genBackground()
@@ -208,16 +208,18 @@ class QtColorTriangle(QtWidgets.QWidget):
 
         # Draw the trigon
         # Find the color with only the hue, and max value and saturation
-        hueColor = QtGui.QColor()
-        hueColor.setHsv(self.cur_hue, 255, 255)
+        hue_color = QtGui.QColor()
+        hue_color.setHsv(self.cur_hue, 255, 255)
 
         # Draw the triangle
-        self.drawTrigon(buf, self.point_a, self.point_b, self.point_c, hueColor)
+        self.drawTrigon(
+            buf, self.point_a, self.point_b, self.point_c, hue_color
+        )
 
         # Slow step: convert the image to a pixmap
         pix = QtGui.QPixmap.fromImage(buf)
-        painter = QtGui.QPainter(pix)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        pix_painter = QtGui.QPainter(pix)
+        pix_painter.setRenderHint(QtGui.QPainter.Antialiasing)
 
         # Draw an outline of the triangle
         # --- ORIGINAL VALUES ---
@@ -225,23 +227,23 @@ class QtColorTriangle(QtWidgets.QWidget):
         # painter.setPen(QtGui.QPen(halfAlpha, 0))
 
         halfAlpha = QtGui.QColor(40, 40, 40, 128)
-        painter.setPen(QtGui.QPen(halfAlpha, 2))
+        pix_painter.setPen(QtGui.QPen(halfAlpha, 2))
 
-        painter.drawLine(self.point_a, self.point_b)
-        painter.drawLine(self.point_b, self.point_c)
-        painter.drawLine(self.point_c, self.point_a)
+        pix_painter.drawLine(self.point_a, self.point_b)
+        pix_painter.drawLine(self.point_b, self.point_c)
+        pix_painter.drawLine(self.point_c, self.point_a)
 
-        painter.setPen(QtGui.QPen(QtCore.Qt.white, self.pen_width))
-        painter.drawEllipse(
+        pix_painter.setPen(QtGui.QPen(QtCore.Qt.white, self.pen_width))
+        pix_painter.drawEllipse(
             int(self.point_d.x() - self.ellipse_size / 2.0),
             int(self.point_d.y() - self.ellipse_size / 2.0),
             self.ellipse_size, self.ellipse_size
         )
 
         # Draw the selector ellipse.
-        painter.setPen(QtGui.QPen(QtCore.Qt.white, self.pen_width))
-        painter.setBrush(self.cur_color)
-        painter.drawEllipse(
+        pix_painter.setPen(QtGui.QPen(QtCore.Qt.white, self.pen_width))
+        pix_painter.setBrush(self.cur_color)
+        pix_painter.drawEllipse(
             QtCore.QRectF(
                 self.selector_pos.x() - self.ellipse_size / 2.0,
                 self.selector_pos.y() - self.ellipse_size / 2.0,
@@ -250,10 +252,10 @@ class QtColorTriangle(QtWidgets.QWidget):
             )
         )
 
-        painter.end()
+        pix_painter.end()
         # Blit
-        p.drawPixmap(self.contentsRect().topLeft(), pix)
-        p.end()
+        painter.drawPixmap(self.contentsRect().topLeft(), pix)
+        painter.end()
 
     def mouseMoveEvent(self, event):
         if (event.buttons() & QtCore.Qt.LeftButton) == 0:
@@ -483,15 +485,16 @@ class QtColorTriangle(QtWidgets.QWidget):
         outer_radius_width = (self.contentsRect().width() - 1) / 2
         outer_radius_height = (self.contentsRect().height() - 1) / 2
         if outer_radius_height < outer_radius_width:
-            outer_radius = outer_radius_height
+            self.outer_radius = outer_radius_height
         else:
-            outer_radius = outer_radius_width
+            self.outer_radius = outer_radius_width
 
-        self.pen_width = int(floor(outer_radius / self.ellipse_thick_ratio))
-        self.ellipse_size = int(
-            floor(outer_radius / self.ellipse_size_ratio)
+        self.pen_width = int(
+            floor(self.outer_radius / self.ellipse_thick_ratio)
         )
-        self.outer_radius = outer_radius
+        self.ellipse_size = int(
+            floor(self.outer_radius / self.ellipse_size_ratio)
+        )
 
         cx = float(self.contentsRect().center().x())
         cy = float(self.contentsRect().center().y())
@@ -810,7 +813,7 @@ class QtColorTriangle(QtWidgets.QWidget):
         )
 
         # Find the hue value from the angle of the 'a' point.
-        angle = self.angle_a - PI/2.0
+        angle = self.angle_a - PI / 2.0
         if angle < 0:
             angle += TWOPI
         hue = (360.0 * angle) / TWOPI
