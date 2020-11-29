@@ -7,29 +7,30 @@ class ColorViewer(QtWidgets.QWidget):
 
         self.setMinimumSize(10, 10)
 
-        self.actualPen = QtGui.QPen()
-        self.actualBrush = QtGui.QBrush()
-        self.actualColor = QtGui.QColor()
+        self.actual_pen = QtGui.QPen()
+        self.actual_color = QtGui.QColor()
 
     def pen(self):
-        return self.actualPen
+        return self.actual_pen
 
     def setPen(self, pen):
-        self.actualPen = pen
+        self.actual_pen = pen
 
     def color(self):
-        return self.actualColor
+        return self.actual_color
 
     def setColor(self, color):
-        self.actualColor = color
+        self.actual_color = color
 
     def paintEvent(self, event):
-        p = QtGui.QPainter(self)
-        p.setPen(self.actualPen)
-        p.setBrush(QtGui.QBrush(self.actualColor))
-        p.drawRect(QtCore.QRect(2, 2, self.width() - 4, self.height() - 4))
-        p.end()
+        painter = QtGui.QPainter(self)
+        painter.setPen(self.actual_pen)
+        painter.setBrush(QtGui.QBrush(self.actual_color))
+        painter.drawRect(
+            QtCore.QRect(2, 2, self.width() - 4, self.height() - 4)
+        )
+        painter.end()
 
     def changeColor(self, color):
-        self.actualColor = color
+        self.actual_color = color
         self.update()

@@ -1,4 +1,5 @@
 import math
+from math import floor
 from Qt import QtWidgets, QtCore, QtGui
 
 QT_VERSION = 5
@@ -16,9 +17,9 @@ class DoubleColor:
             g = r.g
             b = r.b
             r = r.r
-        self.r = r
-        self.g = g
-        self.b = b
+        self.r = float(r)
+        self.g = float(g)
+        self.b = float(b)
 
 
 class Vertex:
@@ -27,18 +28,17 @@ class Vertex:
             color = QtGui.QColor(color)
 
         if isinstance(color, QtGui.QColor):
-            color = DoubleColor(
-                float(color.red()),
-                float(color.green()),
-                float(color.blue())
-            )
+            color = DoubleColor(color.red(), color.green(), color.blue())
 
         self.color = color
         self.point = point
 
 
 class QtColorTriangle(QtWidgets.QWidget):
-    colorChanged = QtCore.pyqtSignal(QtGui.QColor)
+    colorChanged = QtCore.Signal(QtGui.QColor)
+    pointer_radius_ratio = 10.0
+    inner_radius_ratio = 5.0
+    ellipse_size_ratio = 10.0
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -48,82 +48,90 @@ class QtColorTriangle(QtWidgets.QWidget):
         )
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
-        self.a = float()
-        self.b = float()
-        self.c = float()
+        self.angle_a = float()
+        self.angle_b = float()
+        self.angle_c = float()
 
-        self.bg = QtGui.QImage(self.sizeHint(), QtGui.QImage.Format_RGB32)
-        self.curColor = QtGui.QColor()
-        self.pa = QtCore.QPointF()
-        self.pb = QtCore.QPointF()
-        self.pc = QtCore.QPointF()
-        self.pd = QtCore.QPointF()
+        self.bg_image = QtGui.QImage(
+            self.sizeHint(), QtGui.QImage.Format_RGB32
+        )
+        self.cur_color = QtGui.QColor()
+        self.point_a = QtCore.QPointF()
+        self.point_b = QtCore.QPointF()
+        self.point_c = QtCore.QPointF()
+        self.point_d = QtCore.QPointF()
 
-        self.curHue = int()
-        self.mustGenerateBackground = True
+        self.cur_hue = int()
+        self._generate_bg = True
 
-        self.penWidth = int()
-        self.ellipseSize = int()
-        self.outerRadius = int()
-        self.selectorPos = QtCore.QPointF()
+        self.pen_width = int()
+        self.ellipse_size = int()
+        self.outer_radius = int()
+        self.selector_pos = QtCore.QPointF()
 
-        self.selMode = IdleState
+        self.sel_mode = IdleState
 
-        tmp = QtGui.QColor()
-        tmp.setHsv(76, 184, 206)
-        self.setColor(tmp)
+        color = QtGui.QColor()
+        color.setHsv(76, 184, 206)
+        self.setColor(color)
 
     def setColor(self, col):
-        if col == self.curColor:
+        if col == self.cur_color:
             return
 
-        self.curColor = col
+        self.cur_color = col
 
-        h, s, v, _a = self.curColor.getHsv()
+        hue, _, v, _ = self.cur_color.getHsv()
 
         # Never use an invalid hue to display colors
-        if h != -1:
-            self.curHue = h
+        if hue != -1:
+            self.cur_hue = hue
 
-        self.a = (((360 - self.curHue) * TWOPI) / 360.0)
-        self.a += math.pi / 2.0
-        if self.a > TWOPI:
-            self.a -= TWOPI
+        self.angle_a = (((360 - self.cur_hue) * TWOPI) / 360.0)
+        self.angle_a += math.pi / 2.0
+        if self.angle_a > TWOPI:
+            self.angle_a -= TWOPI
 
-        self.b = self.a + TWOPI / 3
-        self.c = self.b + TWOPI / 3
+        self.angle_b = self.angle_a + TWOPI / 3
+        self.angle_c = self.angle_b + TWOPI / 3
 
-        if self.b > TWOPI:
-            self.b -= TWOPI
-        if self.c > TWOPI:
-            self.c -= TWOPI
+        if self.angle_b > TWOPI:
+            self.angle_b -= TWOPI
+        if self.angle_c > TWOPI:
+            self.angle_c -= TWOPI
 
         cx = float(self.contentsRect().center().x())
         cy = float(self.contentsRect().center().y())
-        innerRadius = self.outerRadius - (self.outerRadius / 5.0)
-        pointerRadius = self.outerRadius - (self.outerRadius / 10.0)
-
-        self.pa = QtCore.QPointF(
-            cx + (math.cos(self.a) * innerRadius),
-            cy - (math.sin(self.a) * innerRadius)
+        inner_radius = (
+            self.outer_radius
+            - (self.outer_radius / self.inner_radius_ratio)
         )
-        self.pb = QtCore.QPointF(
-            cx + (math.cos(self.b) * innerRadius),
-            cy - (math.sin(self.b) * innerRadius)
-        )
-        self.pc = QtCore.QPointF(
-            cx + (math.cos(self.c) * innerRadius),
-            cy - (math.sin(self.c) * innerRadius)
-        )
-        self.pd = QtCore.QPointF(
-            cx + (math.cos(self.a) * pointerRadius),
-            cy - (math.sin(self.a) * pointerRadius)
+        pointer_radius = (
+            self.outer_radius
+            - (self.outer_radius / self.pointer_radius_ratio)
         )
 
-        self.selectorPos = self.pointFromColor(self.curColor)
+        self.point_a = QtCore.QPointF(
+            cx + (math.cos(self.angle_a) * inner_radius),
+            cy - (math.sin(self.angle_a) * inner_radius)
+        )
+        self.point_b = QtCore.QPointF(
+            cx + (math.cos(self.angle_b) * inner_radius),
+            cy - (math.sin(self.angle_b) * inner_radius)
+        )
+        self.point_c = QtCore.QPointF(
+            cx + (math.cos(self.angle_c) * inner_radius),
+            cy - (math.sin(self.angle_c) * inner_radius)
+        )
+        self.point_d = QtCore.QPointF(
+            cx + (math.cos(self.angle_a) * pointer_radius),
+            cy - (math.sin(self.angle_a) * pointer_radius)
+        )
+
+        self.selector_pos = self.pointFromColor(self.cur_color)
         self.update()
 
-        self.colorChanged.emit(self.curColor)
+        self.colorChanged.emit(self.cur_color)
 
     def sizeHint(self):
         return QtCore.QSize(100, 100)
@@ -136,34 +144,36 @@ class QtColorTriangle(QtWidgets.QWidget):
         outer_radius_width = (self.contentsRect().width() - 1) / 2
         outer_radius_height = (self.contentsRect().height() - 1) / 2
         if outer_radius_height < outer_radius_width:
-            self.outerRadius = outer_radius_height
+            self.outer_radius = outer_radius_height
         else:
-            self.outerRadius = outer_radius_width
+            self.outer_radius = outer_radius_width
 
-        self.penWidth = int(math.floor(self.outerRadius / 50.0))
-        self.ellipseSize = int(math.floor(self.outerRadius / 10))
+        self.pen_width = int(floor(self.outer_radius / 50.0))
+        self.ellipse_size = int(
+            floor(self.outer_radius / self.ellipse_size_ratio)
+        )
 
         cx = float(self.contentsRect().center().x())
         cy = float(self.contentsRect().center().y())
 
-        self.pa = QtCore.QPointF(
-            cx + (math.cos(self.a) * (self.outerRadius - (self.outerRadius / 5.0))),
-            cy - (math.sin(self.a) * (self.outerRadius - (self.outerRadius / 5.0)))
+        self.point_a = QtCore.QPointF(
+            cx + (math.cos(self.angle_a) * (self.outer_radius - (self.outer_radius / 5.0))),
+            cy - (math.sin(self.angle_a) * (self.outer_radius - (self.outer_radius / 5.0)))
         )
-        self.pb = QtCore.QPointF(
-            cx + (math.cos(self.b) * (self.outerRadius - (self.outerRadius / 5.0))),
-            cy - (math.sin(self.b) * (self.outerRadius - (self.outerRadius / 5.0)))
+        self.point_b = QtCore.QPointF(
+            cx + (math.cos(self.angle_b) * (self.outer_radius - (self.outer_radius / 5.0))),
+            cy - (math.sin(self.angle_b) * (self.outer_radius - (self.outer_radius / 5.0)))
         )
-        self.pc = QtCore.QPointF(
-            cx + (math.cos(self.c) * (self.outerRadius - (self.outerRadius / 5.0))),
-            cy - (math.sin(self.c) * (self.outerRadius - (self.outerRadius / 5.0)))
+        self.point_c = QtCore.QPointF(
+            cx + (math.cos(self.angle_c) * (self.outer_radius - (self.outer_radius / 5.0))),
+            cy - (math.sin(self.angle_c) * (self.outer_radius - (self.outer_radius / 5.0)))
         )
-        self.pd = QtCore.QPointF(
-            cx + (math.cos(self.a) * (self.outerRadius - (self.outerRadius / 10.0))),
-            cy - (math.sin(self.a) * (self.outerRadius - (self.outerRadius / 10.0)))
+        self.point_d = QtCore.QPointF(
+            cx + (math.cos(self.angle_a) * (self.outer_radius - (self.outer_radius / 10.0))),
+            cy - (math.sin(self.angle_a) * (self.outer_radius - (self.outer_radius / 10.0)))
         )
 
-        self.selectorPos = self.pointFromColor(self.curColor)
+        self.selector_pos = self.pointFromColor(self.cur_color)
 
         self.update()
 
@@ -179,23 +189,21 @@ class QtColorTriangle(QtWidgets.QWidget):
                 )
             p.setClipRegion(clip_region)
 
-        if self.mustGenerateBackground:
+        if self._generate_bg:
             self.genBackground()
-            self.mustGenerateBackground = False
+            self._generate_bg = False
 
         # Blit the static generated background with the hue gradient onto
         # the double buffer.
-        buf = QtGui.QImage(self.bg.copy())
+        buf = QtGui.QImage(self.bg_image.copy())
 
         # Draw the trigon
-        # h, s, v, _a = self.curColor.getHsv()
-
         # Find the color with only the hue, and max value and saturation
         hueColor = QtGui.QColor()
-        hueColor.setHsv(self.curHue, 255, 255)
+        hueColor.setHsv(self.cur_hue, 255, 255)
 
         # Draw the triangle
-        self.drawTrigon(buf, self.pa, self.pb, self.pc, hueColor)
+        self.drawTrigon(buf, self.point_a, self.point_b, self.point_c, hueColor)
 
         # Slow step: convert the image to a pixmap
         pix = QtGui.QPixmap.fromImage(buf)
@@ -210,26 +218,26 @@ class QtColorTriangle(QtWidgets.QWidget):
         halfAlpha = QtGui.QColor(40, 40, 40, 128)
         painter.setPen(QtGui.QPen(halfAlpha, 2))
 
-        painter.drawLine(self.pa, self.pb)
-        painter.drawLine(self.pb, self.pc)
-        painter.drawLine(self.pc, self.pa)
+        painter.drawLine(self.point_a, self.point_b)
+        painter.drawLine(self.point_b, self.point_c)
+        painter.drawLine(self.point_c, self.point_a)
 
-        painter.setPen(QtGui.QPen(QtCore.Qt.white, self.penWidth))
+        painter.setPen(QtGui.QPen(QtCore.Qt.white, self.pen_width))
         painter.drawEllipse(
-            int(self.pd.x() - self.ellipseSize / 2.0),
-            int(self.pd.y() - self.ellipseSize / 2.0),
-            self.ellipseSize, self.ellipseSize
+            int(self.point_d.x() - self.ellipse_size / 2.0),
+            int(self.point_d.y() - self.ellipse_size / 2.0),
+            self.ellipse_size, self.ellipse_size
         )
 
         # Draw the selector ellipse.
-        painter.setPen(QtGui.QPen(QtCore.Qt.white, self.penWidth))
-        painter.setBrush(self.curColor)
+        painter.setPen(QtGui.QPen(QtCore.Qt.white, self.pen_width))
+        painter.setBrush(self.cur_color)
         painter.drawEllipse(
             QtCore.QRectF(
-                self.selectorPos.x() - self.ellipseSize / 2.0,
-                self.selectorPos.y() - self.ellipseSize / 2.0,
-                self.ellipseSize + 0.5,
-                self.ellipseSize + 0.5
+                self.selector_pos.x() - self.ellipse_size / 2.0,
+                self.selector_pos.y() - self.ellipse_size / 2.0,
+                self.ellipse_size + 0.5,
+                self.ellipse_size + 0.5
             )
         )
 
@@ -248,89 +256,89 @@ class QtColorTriangle(QtWidgets.QWidget):
         )
         newColor = False
 
-        if self.selMode is SelectingHueState:
-            self.a = self.angleAt(depos, self.contentsRect())
-            self.b = self.a + (TWOPI / 3.0)
-            self.c = self.b + (TWOPI / 3.0)
-            if self.b > TWOPI:
-                self.b -= TWOPI
-            if self.c > TWOPI:
-                self.c -= TWOPI
+        if self.sel_mode is SelectingHueState:
+            self.angle_a = self.angleAt(depos, self.contentsRect())
+            self.angle_b = self.angle_a + (TWOPI / 3.0)
+            self.angle_c = self.angle_b + (TWOPI / 3.0)
+            if self.angle_b > TWOPI:
+                self.angle_b -= TWOPI
+            if self.angle_c > TWOPI:
+                self.angle_c -= TWOPI
 
-            am = self.a - (math.pi / 2)
+            am = self.angle_a - (math.pi / 2)
             if am < 0:
                 am += TWOPI
 
-            self.curHue = 360 - int(((am) * 360.0) / TWOPI)
-            h, s, v, _a = self.curColor.getHsv()
+            self.cur_hue = 360 - int(((am) * 360.0) / TWOPI)
+            h, s, v, _a = self.cur_color.getHsv()
 
-            if self.curHue != h:
+            if self.cur_hue != h:
                 newColor = True
-                self.curColor.setHsv(self.curHue, s, v)
+                self.cur_color.setHsv(self.cur_hue, s, v)
 
             cx = float(self.contentsRect().center().x())
             cy = float(self.contentsRect().center().y())
 
-            self.pa = QtCore.QPointF(
+            self.point_a = QtCore.QPointF(
                 cx + (
-                    math.cos(self.a)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.cos(self.angle_a)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 ),
                 cy - (
-                    math.sin(self.a)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.sin(self.angle_a)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 )
             )
-            self.pb = QtCore.QPointF(
+            self.point_b = QtCore.QPointF(
                 cx + (
-                    math.cos(self.b)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.cos(self.angle_b)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 ),
                 cy - (
-                    math.sin(self.b)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.sin(self.angle_b)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 )
             )
-            self.pc = QtCore.QPointF(
+            self.point_c = QtCore.QPointF(
                 cx + (
-                    math.cos(self.c)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.cos(self.angle_c)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 ),
                 cy - (
-                    math.sin(self.c)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.sin(self.angle_c)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 )
             )
-            self.pd = QtCore.QPointF(
+            self.point_d = QtCore.QPointF(
                 cx + (
-                    math.cos(self.a)
-                    * (self.outerRadius - (self.outerRadius / 10.0))
+                    math.cos(self.angle_a)
+                    * (self.outer_radius - (self.outer_radius / 10.0))
                 ),
                 cy - (
-                    math.sin(self.a)
-                    * (self.outerRadius - (self.outerRadius / 10.0))
+                    math.sin(self.angle_a)
+                    * (self.outer_radius - (self.outer_radius / 10.0))
                 )
             )
 
-            self.selectorPos = self.pointFromColor(self.curColor)
+            self.selector_pos = self.pointFromColor(self.cur_color)
         else:
-            aa = Vertex(QtCore.Qt.black, self.pa)
-            bb = Vertex(QtCore.Qt.black, self.pb)
-            cc = Vertex(QtCore.Qt.black, self.pc)
+            aa = Vertex(QtCore.Qt.black, self.point_a)
+            bb = Vertex(QtCore.Qt.black, self.point_b)
+            cc = Vertex(QtCore.Qt.black, self.point_c)
 
-            self.selectorPos = self.movePointToTriangle(
+            self.selector_pos = self.movePointToTriangle(
                 depos.x(), depos.y(), aa, bb, cc
             )
-            col = self.colorFromPoint(self.selectorPos)
-            if (col != self.curColor):
+            col = self.colorFromPoint(self.selector_pos)
+            if (col != self.cur_color):
                 # Ensure that hue does not change when selecting
                 # saturation and value.
                 h, s, v, _a = col.getHsv()
-                self.curColor.setHsv(self.curHue, s, v)
+                self.cur_color.setHsv(self.cur_hue, s, v)
                 newColor = True
 
         if newColor:
-            self.colorChanged.emit(self.curColor)
+            self.colorChanged.emit(self.cur_color)
 
         self.update()
 
@@ -348,121 +356,121 @@ class QtColorTriangle(QtWidgets.QWidget):
 
         # As in mouseMoveEvent, either find the a, b, c angles or the
         # radian position of the selector, then order an update.
-        if (rad > (self.outerRadius - (self.outerRadius / 5))):
-            self.selMode = SelectingHueState
+        if (rad > (self.outer_radius - (self.outer_radius / 5))):
+            self.sel_mode = SelectingHueState
 
-            self.a = self.angleAt(depos, self.contentsRect())
-            self.b = self.a + TWOPI / 3.0
-            self.c = self.b + TWOPI / 3.0
-            if self.b > TWOPI:
-                self.b -= TWOPI
-            if self.c > TWOPI:
-                self.c -= TWOPI
+            self.angle_a = self.angleAt(depos, self.contentsRect())
+            self.angle_b = self.angle_a + TWOPI / 3.0
+            self.angle_c = self.angle_b + TWOPI / 3.0
+            if self.angle_b > TWOPI:
+                self.angle_b -= TWOPI
+            if self.angle_c > TWOPI:
+                self.angle_c -= TWOPI
 
-            am = self.a - math.pi / 2
+            am = self.angle_a - math.pi / 2
             if am < 0:
                 am += TWOPI
 
-            self.curHue = 360 - int((am * 360.0) / TWOPI)
-            h, s, v, _a = self.curColor.getHsv()
+            self.cur_hue = 360 - int((am * 360.0) / TWOPI)
+            h, s, v, _a = self.cur_color.getHsv()
 
-            if h != self.curHue:
+            if h != self.cur_hue:
                 newColor = True
-                self.curColor.setHsv(self.curHue, s, v)
+                self.cur_color.setHsv(self.cur_hue, s, v)
 
             cx = float(self.contentsRect().center().x())
             cy = float(self.contentsRect().center().y())
 
-            self.pa = QtCore.QPointF(
+            self.point_a = QtCore.QPointF(
                 cx + (
-                    math.cos(self.a)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.cos(self.angle_a)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 ),
                 cy - (
-                    math.sin(self.a)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.sin(self.angle_a)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 )
             )
-            self.pb = QtCore.QPointF(
+            self.point_b = QtCore.QPointF(
                 cx + (
-                    math.cos(self.b)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.cos(self.angle_b)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 ),
                 cy - (
-                    math.sin(self.b)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.sin(self.angle_b)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 )
             )
-            self.pc = QtCore.QPointF(
+            self.point_c = QtCore.QPointF(
                 cx + (
-                    math.cos(self.c)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.cos(self.angle_c)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 ),
                 cy - (
-                    math.sin(self.c)
-                    * (self.outerRadius - (self.outerRadius / 5.0))
+                    math.sin(self.angle_c)
+                    * (self.outer_radius - (self.outer_radius / 5.0))
                 )
             )
-            self.pd = QtCore.QPointF(
+            self.point_d = QtCore.QPointF(
                 cx + (
-                    math.cos(self.a)
-                    * (self.outerRadius - (self.outerRadius / 10.0))
+                    math.cos(self.angle_a)
+                    * (self.outer_radius - (self.outer_radius / 10.0))
                 ),
                 cy - (
-                    math.sin(self.a)
-                    * (self.outerRadius - (self.outerRadius / 10.0))
+                    math.sin(self.angle_a)
+                    * (self.outer_radius - (self.outer_radius / 10.0))
                 )
             )
 
-            self.selectorPos = self.pointFromColor(self.curColor)
-            self.colorChanged.emit(self.curColor)
+            self.selector_pos = self.pointFromColor(self.cur_color)
+            self.colorChanged.emit(self.cur_color)
         else:
-            self.selMode = SelectingSatValueState
+            self.sel_mode = SelectingSatValueState
 
-            aa = Vertex(QtCore.Qt.black, self.pa)
-            bb = Vertex(QtCore.Qt.black, self.pb)
-            cc = Vertex(QtCore.Qt.black, self.pc)
+            aa = Vertex(QtCore.Qt.black, self.point_a)
+            bb = Vertex(QtCore.Qt.black, self.point_b)
+            cc = Vertex(QtCore.Qt.black, self.point_c)
 
-            self.selectorPos = self.movePointToTriangle(
+            self.selector_pos = self.movePointToTriangle(
                 depos.x(), depos.y(), aa, bb, cc
             )
-            col = self.colorFromPoint(self.selectorPos)
-            if col != self.curColor:
-                self.curColor = col
+            col = self.colorFromPoint(self.selector_pos)
+            if col != self.cur_color:
+                self.cur_color = col
                 newColor = True
 
         if newColor:
-            self.colorChanged.emit(self.curColor)
+            self.colorChanged.emit(self.cur_color)
 
         self.update()
 
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            self.selMode = IdleState
+            self.sel_mode = IdleState
 
     def keyPressEvent(self, event):
         key = event.key()
         if key == QtCore.Qt.Key_Left:
-            self.curHue -= 1
-            if self.curHue < 0:
-                self.curHue += 360
-            h, s, v, _a = self.curColor.getHsv()
+            self.cur_hue -= 1
+            if self.cur_hue < 0:
+                self.cur_hue += 360
+            h, s, v, _a = self.cur_color.getHsv()
 
             tmp = QtGui.QColor()
-            tmp.setHsv(self.curHue, s, v)
+            tmp.setHsv(self.cur_hue, s, v)
             self.setColor(tmp)
 
         elif key == QtCore.Qt.Key_Right:
-            self.curHue += 1
-            if (self.curHue > 359):
-                self.curHue -= 360
-            h, s, v, _a = self.curColor.getHsv()
+            self.cur_hue += 1
+            if (self.cur_hue > 359):
+                self.cur_hue -= 360
+            h, s, v, _a = self.cur_color.getHsv()
             tmp = QtGui.QColor()
-            tmp.setHsv(self.curHue, s, v)
+            tmp.setHsv(self.cur_hue, s, v)
             self.setColor(tmp)
 
         elif key == QtCore.Qt.Key_Up:
-            h, s, v, _a = self.curColor.getHsv()
+            h, s, v, _a = self.cur_color.getHsv()
             if event.modifiers() & QtCore.Qt.ShiftModifier:
                 if (s > 5):
                     s -= 5
@@ -475,11 +483,11 @@ class QtColorTriangle(QtWidgets.QWidget):
                     v = 0
 
             tmp = QtGui.QColor()
-            tmp.setHsv(self.curHue, s, v)
+            tmp.setHsv(self.cur_hue, s, v)
             self.setColor(tmp)
 
         elif key == QtCore.Qt.Key_Down:
-            h, s, v, _a = self.curColor.getHsv()
+            h, s, v, _a = self.cur_color.getHsv()
             if event.modifiers() & QtCore.Qt.ShiftModifier:
                 if s < 250:
                     s += 5
@@ -492,45 +500,47 @@ class QtColorTriangle(QtWidgets.QWidget):
                     v = 255
 
             tmp = QtGui.QColor()
-            tmp.setHsv(self.curHue, s, v)
+            tmp.setHsv(self.cur_hue, s, v)
             self.setColor(tmp)
 
     def resizeEvent(self, event):
         outer_radius_width = (self.contentsRect().width() - 1) / 2
         outer_radius_height = (self.contentsRect().height() - 1) / 2
         if outer_radius_height < outer_radius_width:
-            outerRadius = outer_radius_height
+            outer_radius = outer_radius_height
         else:
-            outerRadius = outer_radius_width
+            outer_radius = outer_radius_width
 
-        self.penWidth = int(math.floor(outerRadius / 50.0))
-        self.ellipseSize = int(math.floor(outerRadius / 10))
-        self.outerRadius = outerRadius
+        self.pen_width = int(floor(outer_radius / 50.0))
+        self.ellipse_size = int(
+            floor(outer_radius / self.ellipse_size_ratio)
+        )
+        self.outer_radius = outer_radius
 
         cx = float(self.contentsRect().center().x())
         cy = float(self.contentsRect().center().y())
 
-        self.pa = QtCore.QPointF(
-            cx + (math.cos(self.a) * (outerRadius - (outerRadius / 5.0))),
-            cy - (math.sin(self.a) * (outerRadius - (outerRadius / 5.0)))
+        self.point_a = QtCore.QPointF(
+            cx + (math.cos(self.angle_a) * (outer_radius - (outer_radius / 5.0))),
+            cy - (math.sin(self.angle_a) * (outer_radius - (outer_radius / 5.0)))
         )
-        self.pb = QtCore.QPointF(
-            cx + (math.cos(self.b) * (outerRadius - (outerRadius / 5.0))),
-            cy - (math.sin(self.b) * (outerRadius - (outerRadius / 5.0)))
+        self.point_b = QtCore.QPointF(
+            cx + (math.cos(self.angle_b) * (outer_radius - (outer_radius / 5.0))),
+            cy - (math.sin(self.angle_b) * (outer_radius - (outer_radius / 5.0)))
         )
-        self.pc = QtCore.QPointF(
-            cx + (math.cos(self.c) * (outerRadius - (outerRadius / 5.0))),
-            cy - (math.sin(self.c) * (outerRadius - (outerRadius / 5.0)))
+        self.point_c = QtCore.QPointF(
+            cx + (math.cos(self.angle_c) * (outer_radius - (outer_radius / 5.0))),
+            cy - (math.sin(self.angle_c) * (outer_radius - (outer_radius / 5.0)))
         )
-        self.pd = QtCore.QPointF(
-            cx + (math.cos(self.a) * (outerRadius - (outerRadius / 10.0))),
-            cy - (math.sin(self.a) * (outerRadius - (outerRadius / 10.0)))
+        self.point_d = QtCore.QPointF(
+            cx + (math.cos(self.angle_a) * (outer_radius - (outer_radius / 10.0))),
+            cy - (math.sin(self.angle_a) * (outer_radius - (outer_radius / 10.0)))
         )
 
         # Find the current position of the selector
-        self.selectorPos = self.pointFromColor(self.curColor)
+        self.selector_pos = self.pointFromColor(self.cur_color)
 
-        self.mustGenerateBackground = True
+        self._generate_bg = True
         self.update()
 
     def drawTrigon(self, buf, pa, pb, pc, color):
@@ -572,15 +582,6 @@ class QtColorTriangle(QtWidgets.QWidget):
         rightColors = {}
         leftX = {}
         rightX = {}
-        # QVarLengthArray<DoubleColor, 2000> leftColors;
-        # QVarLengthArray<DoubleColor, 2000> rightColors;
-        # QVarLengthArray<double, 2000> leftX;
-        # QVarLengthArray<double, 2000> rightX;
-
-        # leftColors.resize(int(floor(p3.point.y() + 1)));
-        # rightColors.resize(int(floor(p3.point.y() + 1)));
-        # leftX.resize(int(floor(p3.point.y() + 1)));
-        # rightX.resize(int(floor(p3.point.y() + 1)));
 
         # Scan longy - find all left and right colors and X-values for
         # the tallest edge (p1-p3).
@@ -591,8 +592,8 @@ class QtColorTriangle(QtWidgets.QWidget):
         r = source.r
         g = source.g
         b = source.b
-        y1 = int(math.floor(p1.point.y()))
-        y2 = int(math.floor(p3.point.y()))
+        y1 = int(floor(p1.point.y()))
+        y2 = int(floor(p3.point.y()))
 
         # Find slopes (notice that if the y dists are 0, we don't care
         # about the slopes)
@@ -628,8 +629,8 @@ class QtColorTriangle(QtWidgets.QWidget):
         r = source.r
         g = source.g
         b = source.b
-        y1 = int(math.floor(p1.point.y()))
-        y2 = int(math.floor(p2.point.y()))
+        y1 = int(floor(p1.point.y()))
+        y2 = int(floor(p2.point.y()))
 
         # Find slopes (notice that if the y dists are 0, we don't care
         # about the slopes)
@@ -665,8 +666,8 @@ class QtColorTriangle(QtWidgets.QWidget):
         r = source.r
         g = source.g
         b = source.b
-        y1 = int(math.floor(p2.point.y()))
-        y2 = int(math.floor(p3.point.y()))
+        y1 = int(floor(p2.point.y()))
+        y2 = int(floor(p3.point.y()))
 
         # Find slopes (notice that if the y dists are 0, we don't care
         # about the slopes)
@@ -696,14 +697,14 @@ class QtColorTriangle(QtWidgets.QWidget):
 
         # Inner loop. For each y in the left map of x-values, draw one
         # line from left to right.
-        p3yfloor = int(math.floor(p3.point.y()))
-        p1yfloor = int(math.floor(p1.point.y()))
+        p3yfloor = int(floor(p3.point.y()))
+        p1yfloor = int(floor(p1.point.y()))
         for y in range(p1yfloor, p3yfloor):
             lx = leftX[y]
             rx = rightX[y]
 
-            lxi = int(math.floor(lx))
-            rxi = int(math.floor(rx))
+            lxi = int(floor(lx))
+            rxi = int(floor(rx))
             rc = rightColors[y]
             lc = leftColors[y]
 
@@ -748,34 +749,34 @@ class QtColorTriangle(QtWidgets.QWidget):
     def pointFromColor(self, col):
         # Simplifications for the corner cases.
         if col == QtCore.Qt.black:
-            return self.pb
+            return self.point_b
         elif col == QtCore.Qt.white:
-            return self.pc
+            return self.point_c
 
         # Find the x and y slopes
-        ab_deltax = self.pb.x() - self.pa.x()
-        ab_deltay = self.pb.y() - self.pa.y()
-        bc_deltax = self.pc.x() - self.pb.x()
-        bc_deltay = self.pc.y() - self.pb.y()
-        ac_deltax = self.pc.x() - self.pa.x()
-        ac_deltay = self.pc.y() - self.pa.y()
+        ab_deltax = self.point_b.x() - self.point_a.x()
+        ab_deltay = self.point_b.y() - self.point_a.y()
+        bc_deltax = self.point_c.x() - self.point_b.x()
+        bc_deltay = self.point_c.y() - self.point_b.y()
+        ac_deltax = self.point_c.x() - self.point_a.x()
+        ac_deltay = self.point_c.y() - self.point_a.y()
 
         # Extract the h,s,v values of col.
         hue, sat, val, _a = col.getHsv()
 
         # Find the line that passes through the triangle where the value
         # is equal to our color's value.
-        p1 = self.pa.x() + (ab_deltax * float(255 - val)) / 255.0
-        q1 = self.pa.y() + (ab_deltay * float(255 - val)) / 255.0
-        p2 = self.pb.x() + (bc_deltax * float(val)) / 255.0
-        q2 = self.pb.y() + (bc_deltay * float(val)) / 255.0
+        p1 = self.point_a.x() + (ab_deltax * float(255 - val)) / 255.0
+        q1 = self.point_a.y() + (ab_deltay * float(255 - val)) / 255.0
+        p2 = self.point_b.x() + (bc_deltax * float(val)) / 255.0
+        q2 = self.point_b.y() + (bc_deltay * float(val)) / 255.0
 
         # Find the line that passes through the triangle where the
         # saturation is equal to our color's value.
-        p3 = self.pa.x() + (ac_deltax * float(255 - sat)) / 255.0
-        q3 = self.pa.y() + (ac_deltay * float(255 - sat)) / 255.0
-        p4 = self.pb.x()
-        q4 = self.pb.y()
+        p3 = self.point_a.x() + (ac_deltax * float(255 - sat)) / 255.0
+        q3 = self.point_a.y() + (ac_deltay * float(255 - sat)) / 255.0
+        p4 = self.point_b.x()
+        q4 = self.point_b.y()
 
         # Find the intersection between these lines.
         x = 0
@@ -803,9 +804,9 @@ class QtColorTriangle(QtWidgets.QWidget):
         outer_radius_width = (self.contentsRect().width() - 1) / 2
         outer_radius_height = (self.contentsRect().width() - 1) / 2
         if outer_radius_height < outer_radius_width:
-            outerRadius = outer_radius_height
+            outer_radius = outer_radius_height
         else:
-            outerRadius = outer_radius_width
+            outer_radius = outer_radius_width
 
         # Find the center coordinates
         cx = float(self.contentsRect().center().x())
@@ -814,20 +815,20 @@ class QtColorTriangle(QtWidgets.QWidget):
         # Find the a, b and c from their angles, the center of the rect
         # and the radius of the hue gradient donut.
         pa = QtCore.QPointF(
-            cx + (math.cos(self.a) * (outerRadius - (outerRadius / 5.0))),
-            cy - (math.sin(self.a) * (outerRadius - (outerRadius / 5.0)))
+            cx + (math.cos(self.angle_a) * (outer_radius - (outer_radius / 5.0))),
+            cy - (math.sin(self.angle_a) * (outer_radius - (outer_radius / 5.0)))
         )
         pb = QtCore.QPointF(
-            cx + (math.cos(self.b) * (outerRadius - (outerRadius / 5.0))),
-            cy - (math.sin(self.b) * (outerRadius - (outerRadius / 5.0)))
+            cx + (math.cos(self.angle_b) * (outer_radius - (outer_radius / 5.0))),
+            cy - (math.sin(self.angle_b) * (outer_radius - (outer_radius / 5.0)))
         )
         pc = QtCore.QPointF(
-            cx + (math.cos(self.c) * (outerRadius - (outerRadius / 5.0))),
-            cy - (math.sin(self.c) * (outerRadius - (outerRadius / 5.0)))
+            cx + (math.cos(self.angle_c) * (outer_radius - (outer_radius / 5.0))),
+            cy - (math.sin(self.angle_c) * (outer_radius - (outer_radius / 5.0)))
         )
 
         # Find the hue value from the angle of the 'a' point.
-        angle = self.a - math.pi/2.0
+        angle = self.angle_a - math.pi/2.0
         if angle < 0:
             angle += TWOPI
         hue = (360.0 * angle) / TWOPI
@@ -835,7 +836,7 @@ class QtColorTriangle(QtWidgets.QWidget):
         # Create the color of the 'a' corner point. We know that b is
         # black and c is white.
         color = QtGui.QColor()
-        color.setHsv(360 - int(math.floor(hue)), 255, 255)
+        color.setHsv(360 - int(floor(hue)), 255, 255)
 
         # See also drawTrigon(), which basically does exactly the same to
         # determine all colors in the trigon.
@@ -879,14 +880,14 @@ class QtColorTriangle(QtWidgets.QWidget):
         if lefty:
             if firstshorty:
                 leftx = p1.point.x()
-                if (math.floor(p1p2ydist) != 0.0):
+                if (floor(p1p2ydist) != 0.0):
                     leftx += (p1p2xdist * (p.y() - p1.point.y())) / p1p2ydist
                 else:
                     leftx = min(p1.point.x(), p2.point.x())
 
             else:
                 leftx = p2.point.x()
-                if (math.floor(p2p3ydist) != 0.0):
+                if (floor(p2p3ydist) != 0.0):
                     leftx += (p2p3xdist * (p.y() - p2.point.y())) / p2p3ydist
                 else:
                     leftx = min(p2.point.x(), p3.point.x())
@@ -899,14 +900,14 @@ class QtColorTriangle(QtWidgets.QWidget):
 
             if firstshorty:
                 rightx = p1.point.x()
-                if math.floor(p1p2ydist) != 0.0:
+                if floor(p1p2ydist) != 0.0:
                     rightx += (p1p2xdist * (p.y() - p1.point.y())) / p1p2ydist
                 else:
                     rightx = max(p1.point.x(), p2.point.x())
 
             else:
                 rightx = p2.point.x()
-                if math.floor(p2p3ydist) != 0.0:
+                if floor(p2p3ydist) != 0.0:
                     rightx += (p2p3xdist * (p.y() - p2.point.y())) / p2p3ydist
                 else:
                     rightx = max(p2.point.x(), p3.point.x())
@@ -920,7 +921,7 @@ class QtColorTriangle(QtWidgets.QWidget):
         glong = 0
         blong = 0
         if firstshorty:
-            if math.floor(p1p2ydist) != 0.0:
+            if floor(p1p2ydist) != 0.0:
                 rshort  = p2.color.r * (p.y() - p1.point.y()) / p1p2ydist
                 gshort  = p2.color.g * (p.y() - p1.point.y()) / p1p2ydist
                 bshort  = p2.color.b * (p.y() - p1.point.y()) / p1p2ydist
@@ -949,7 +950,7 @@ class QtColorTriangle(QtWidgets.QWidget):
                         bshort  = p2.color.b
 
         else:
-            if math.floor(p2p3ydist) != 0.0:
+            if floor(p2p3ydist) != 0.0:
                 rshort  = p3.color.r * (p.y() - p2.point.y()) / p2p3ydist
                 gshort  = p3.color.g * (p.y() - p2.point.y()) / p2p3ydist
                 bshort  = p3.color.b * (p.y() - p2.point.y()) / p2p3ydist
@@ -1031,9 +1032,9 @@ class QtColorTriangle(QtWidgets.QWidget):
         # Now floor the color components and fit them into proper
         # boundaries. This again is to compensate for the error caused by
         # loss of precision.
-        ri = int(math.floor(r))
-        gi = int(math.floor(g))
-        bi = int(math.floor(b))
+        ri = int(floor(r))
+        gi = int(floor(g))
+        bi = int(floor(b))
         if ri < 0:
             ri = 0
         elif ri > 255:
@@ -1053,52 +1054,50 @@ class QtColorTriangle(QtWidgets.QWidget):
         return QtGui.QColor(ri, gi, bi)
 
     def genBackground(self):
-        innerRadius = float(self.outerRadius - self.outerRadius / 5)
+        inner_radius = float(self.outer_radius - self.outer_radius / 5)
 
-        self.bg = QtGui.QImage(
+        self.bg_image = QtGui.QImage(
             self.contentsRect().size(), QtGui.QImage.Format_RGB32
         )
-        p = QtGui.QPainter(self.bg)
+        p = QtGui.QPainter(self.bg_image)
 
         p.setRenderHint(QtGui.QPainter.Antialiasing)
-        p.fillRect(self.bg.rect(), self.palette().mid())
+        p.fillRect(self.bg_image.rect(), self.palette().mid())
 
-        gradient = QtGui.QConicalGradient(self.bg.rect().center(), 90)
+        gradient = QtGui.QConicalGradient(self.bg_image.rect().center(), 90)
 
         color = QtGui.QColor()
         idx = 0.0
         for _ in range(11):
-            if QT_VERSION < 4.1:
-                hue = idx * 360.0
-            else:
-                hue = 360.0 - (idx * 360.0)
+            # Some Qt versions may require:
+            # hue = idx * 360.0
+            hue = 360.0 - (idx * 360.0)
             color.setHsv(int(hue), 255, 255)
             gradient.setColorAt(idx, color)
             idx += 0.1
 
         innerRadiusRect = QtCore.QRectF(
-            self.bg.rect().center().x() - innerRadius,
-            self.bg.rect().center().y() - innerRadius,
-            innerRadius * 2 + 1, innerRadius * 2 + 1
+            self.bg_image.rect().center().x() - inner_radius,
+            self.bg_image.rect().center().y() - inner_radius,
+            inner_radius * 2 + 1, inner_radius * 2 + 1
         )
-        outerRadiusRect = QtCore.QRectF(
-            self.bg.rect().center().x() - self.outerRadius,
-            self.bg.rect().center().y() - self.outerRadius,
-            self.outerRadius * 2 + 1, self.outerRadius * 2 + 1
+        outer_radiusRect = QtCore.QRectF(
+            self.bg_image.rect().center().x() - self.outer_radius,
+            self.bg_image.rect().center().y() - self.outer_radius,
+            self.outer_radius * 2 + 1, self.outer_radius * 2 + 1
         )
         path = QtGui.QPainterPath()
         path.addEllipse(innerRadiusRect)
-        path.addEllipse(outerRadiusRect)
+        path.addEllipse(outer_radiusRect)
 
         p.save()
         p.setClipPath(path)
-        p.fillRect(self.bg.rect(), gradient)
+        p.fillRect(self.bg_image.rect(), gradient)
         p.restore()
 
-        penThickness = float(self.bg.width() / 400.0)
-        f = 0
+        pen_thickness = float(self.bg_image.width() / 400.0)
 
-        for _ in range(288):
+        for f in range(0, 5760 + 1, 20):
             value = int((0.5 + math.cos(((f - 1800) / 5760.0) * TWOPI) / 2) * 255.0)
 
             color.setHsv(
@@ -1106,7 +1105,7 @@ class QtColorTriangle(QtWidgets.QWidget):
                 int(128 + (255 - value) / 2),
                 int(255 - (255 - value) / 4)
             )
-            p.setPen(QtGui.QPen(color, penThickness))
+            p.setPen(QtGui.QPen(color, pen_thickness))
             p.drawArc(innerRadiusRect, 1440 - f, 20)
 
             color.setHsv(
@@ -1114,18 +1113,14 @@ class QtColorTriangle(QtWidgets.QWidget):
                 int(128 + value / 2),
                 int(255 - value / 4)
             )
-            p.setPen(QtGui.QPen(color, penThickness))
-            p.drawArc(outerRadiusRect, 2880 - 1440 - f, 20)
-            f += 20
+            p.setPen(QtGui.QPen(color, pen_thickness))
+            p.drawArc(outer_radiusRect, 2880 - 1440 - f, 20)
+
         p.end()
 
     @classmethod
-    def qsqr(cls, a):
-        return a * a
-
-    @classmethod
     def vlen(cls, x, y):
-        return math.sqrt(cls.qsqr(x) + cls.qsqr(y))
+        return math.sqrt((x ** 2) + (y ** 2))
 
     @classmethod
     def vprod(cls, x1, y1, x2, y2):
@@ -1142,19 +1137,19 @@ class QtColorTriangle(QtWidgets.QWidget):
     def pointAbovePoint(self, x, y, px, py, ax, ay, bx, by):
         result = False
 
-        if math.floor(ax) > math.floor(bx):
-            if math.floor(ay) < math.floor(by):
+        if floor(ax) > floor(bx):
+            if floor(ay) < floor(by):
                 # line is draw upright-to-downleft
                 if (
-                    math.floor(x) < math.floor(px)
-                    or math.floor(y) < math.floor(py)
+                    floor(x) < floor(px)
+                    or floor(y) < floor(py)
                 ):
                     result = True
-            elif math.floor(ay) > math.floor(by):
+            elif floor(ay) > floor(by):
                 # line is draw downright-to-upleft
                 if (
-                    math.floor(x) > math.floor(px)
-                    or math.floor(y) < math.floor(py)
+                    floor(x) > floor(px)
+                    or floor(y) < floor(py)
                 ):
                     result = True
             else:
@@ -1162,19 +1157,19 @@ class QtColorTriangle(QtWidgets.QWidget):
                 if y < ay:
                     result = True
 
-        elif math.floor(ax) < math.floor(bx):
-            if math.floor(ay) < math.floor(by):
+        elif floor(ax) < floor(bx):
+            if floor(ay) < floor(by):
                 # line is draw upleft-to-downright
                 if (
-                    math.floor(x) < math.floor(px)
-                    or math.floor(y) > math.floor(py)
+                    floor(x) < floor(px)
+                    or floor(y) > floor(py)
                 ):
                     result = True
-            elif math.floor(ay) > math.floor(by):
+            elif floor(ay) > floor(by):
                 # line is draw downleft-to-upright
                 if (
-                    math.floor(x) > math.floor(px)
-                    or math.floor(y) > math.floor(py)
+                    floor(x) > floor(px)
+                    or floor(y) > floor(py)
                 ):
                     result = True
             else:
@@ -1184,10 +1179,10 @@ class QtColorTriangle(QtWidgets.QWidget):
 
         else:
             # line is vertical
-            if math.floor(ay) < math.floor(by):
+            if floor(ay) < floor(by):
                 if (x < ax):
                     result = True
-            elif math.floor(ay) > math.floor(by):
+            elif floor(ay) > floor(by):
                 if x > ax:
                     result = True
             else:
@@ -1214,7 +1209,7 @@ class QtColorTriangle(QtWidgets.QWidget):
                 # line is draw downright-to-upleft
 
                 # If the line is flat, only use the x coordinate.
-                if math.floor(ay) == math.floor(by):
+                if floor(ay) == floor(by):
                     # if (x is to the right of the rightmost point,
                     # return -1. otherwise if x is to the left of the
                     # leftmost point, return 1.
@@ -1246,7 +1241,7 @@ class QtColorTriangle(QtWidgets.QWidget):
                 # line is draw downleft-to-upright
 
                 # If the line is flat, only use the x coordinate.
-                if math.floor(ay) == math.floor(by):
+                if floor(ay) == floor(by):
                     if x <= ax:
                         return -1
                     elif x >= bx:
@@ -1311,7 +1306,7 @@ class QtColorTriangle(QtWidgets.QWidget):
             # and a-(x,y) to determine the point of intersection of the
             # perpendicular projection from (x,y) onto a-b.
             pdist = math.sqrt(
-                self.qsqr(x - a.point.x()) + self.qsqr(y - a.point.y())
+                ((x - a.point.x()) ** 2) + ((y - a.point.y()) ** 2)
             )
 
             # the length of all edges is always > 0
@@ -1351,7 +1346,7 @@ class QtColorTriangle(QtWidgets.QWidget):
         elif self.angleBetweenAngles(angleP, angleB, angleC):
             # If (x,y) is in the b-c area, project onto the b-c vector.
             pdist = math.sqrt(
-                self.qsqr(x - b.point.x()) + self.qsqr(y - b.point.y())
+                ((x - b.point.x()) ** 2) + ((y - b.point.y()) ** 2)
             )
 
             # the length of all edges is always > 0
@@ -1387,7 +1382,7 @@ class QtColorTriangle(QtWidgets.QWidget):
         elif self.angleBetweenAngles(angleP, angleC, angleA):
             # If (x,y) is in the c-a area, project onto the c-a vector.
             pdist = math.sqrt(
-                self.qsqr(x - c.point.x()) + self.qsqr(y - c.point.y())
+                ((x - c.point.x()) ** 2) + ((y - c.point.y()) ** 2)
             )
 
             # the length of all edges is always > 0
