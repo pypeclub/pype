@@ -16,7 +16,6 @@ class PickWidget(QtWidgets.QLabel):
                 QtWidgets.QApplication.desktop().winId()
             )
         self.setPixmap(pix)
-        self.move(0, 0)
 
         self.showFullScreen()
 
