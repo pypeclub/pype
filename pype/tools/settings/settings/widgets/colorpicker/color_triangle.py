@@ -1039,8 +1039,9 @@ class QtColorTriangle(QtWidgets.QWidget):
         return QtGui.QColor(ri, gi, bi)
 
     def genBackground(self):
-        inner_radius = self.outer_radius - (self.outer_radius / 5.0)
-
+        inner_radius = (
+            self.outer_radius - (self.outer_radius / self.inner_radius_ratio)
+        )
         self.bg_image = QtGui.QImage(
             self.contentsRect().size(), QtGui.QImage.Format_RGB32
         )
