@@ -819,12 +819,16 @@ class QtColorTriangle(QtWidgets.QWidget):
         angle = self.angle_a - PI / 2.0
         if angle < 0:
             angle += TWOPI
-        hue = (360.0 * angle) / TWOPI
+        hue = (
+            360
+            - int(floor((360.0 * angle) / TWOPI))
+            - self.hue_offset
+        ) % 360
 
         # Create the color of the 'a' corner point. We know that b is
         # black and c is white.
         color = QtGui.QColor()
-        color.setHsv(360 - int(floor(hue)), 255, 255)
+        color.setHsv(hue, 255, 255)
 
         # See also drawTrigon(), which basically does exactly the same to
         # determine all colors in the trigon.
