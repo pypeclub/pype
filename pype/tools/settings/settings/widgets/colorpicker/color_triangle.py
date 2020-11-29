@@ -323,9 +323,9 @@ class QtColorTriangle(QtWidgets.QWidget):
 
             self.selector_pos = self.pointFromColor(self.cur_color)
         else:
-            aa = Vertex(QtCore.Qt.black, self.point_a)
-            bb = Vertex(QtCore.Qt.black, self.point_b)
-            cc = Vertex(QtCore.Qt.black, self.point_c)
+            aa = Vertex(QtCore.Qt.transparent, self.point_a)
+            bb = Vertex(QtCore.Qt.transparent, self.point_b)
+            cc = Vertex(QtCore.Qt.transparent, self.point_c)
 
             self.selector_pos = self.movePointToTriangle(
                 depos.x(), depos.y(), aa, bb, cc
@@ -414,9 +414,9 @@ class QtColorTriangle(QtWidgets.QWidget):
         else:
             self.sel_mode = SelectingSatValueState
 
-            aa = Vertex(QtCore.Qt.black, self.point_a)
-            bb = Vertex(QtCore.Qt.black, self.point_b)
-            cc = Vertex(QtCore.Qt.black, self.point_c)
+            aa = Vertex(QtCore.Qt.transparent, self.point_a)
+            bb = Vertex(QtCore.Qt.transparent, self.point_b)
+            cc = Vertex(QtCore.Qt.transparent, self.point_c)
 
             self.selector_pos = self.movePointToTriangle(
                 depos.x(), depos.y(), aa, bb, cc
@@ -1053,13 +1053,12 @@ class QtColorTriangle(QtWidgets.QWidget):
         inner_radius = (
             self.outer_radius - (self.outer_radius / self.inner_radius_ratio)
         )
-        self.bg_image = QtGui.QImage(
-            self.contentsRect().size(), QtGui.QImage.Format_RGB32
-        )
+        self.bg_image = QtGui.QPixmap(self.contentsRect().size())
+        self.bg_image.fill(QtCore.Qt.transparent)
+
         painter = QtGui.QPainter(self.bg_image)
 
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.fillRect(self.bg_image.rect(), self.palette().mid())
 
         gradient = QtGui.QConicalGradient(
             self.bg_image.rect().center(), 90 - self.hue_offset
