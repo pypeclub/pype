@@ -252,66 +252,62 @@ class HSVInputs(QtWidgets.QWidget):
 
         self.label = "HSV:"
 
-        input_red = QtWidgets.QSpinBox(self)
-        input_green = QtWidgets.QSpinBox(self)
-        input_blue = QtWidgets.QSpinBox(self)
+        input_hue = QtWidgets.QSpinBox(self)
+        input_sat = QtWidgets.QSpinBox(self)
+        input_val = QtWidgets.QSpinBox(self)
 
-        input_red.setMinimum(0)
-        input_green.setMinimum(0)
-        input_blue.setMinimum(0)
+        input_hue.setMinimum(0)
+        input_sat.setMinimum(0)
+        input_val.setMinimum(0)
 
-        input_red.setMaximum(255)
-        input_green.setMaximum(255)
-        input_blue.setMaximum(255)
+        input_hue.setMaximum(359)
+        input_sat.setMaximum(255)
+        input_val.setMaximum(255)
 
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(input_red)
-        layout.addWidget(input_green)
-        layout.addWidget(input_blue)
+        layout.addWidget(input_hue)
+        layout.addWidget(input_sat)
+        layout.addWidget(input_val)
 
-        input_red.valueChanged.connect(self._on_red_change)
-        input_green.valueChanged.connect(self._on_green_change)
-        input_blue.valueChanged.connect(self._on_blue_change)
+        input_hue.valueChanged.connect(self._on_change)
+        input_sat.valueChanged.connect(self._on_change)
+        input_val.valueChanged.connect(self._on_change)
 
-        self.input_red = input_red
-        self.input_green = input_green
-        self.input_blue = input_blue
-
-    def _on_red_change(self, value):
-        if self._block_changes:
-            return
-        self.color.setRed(value)
-        self._on_change()
-
-    def _on_green_change(self, value):
-        if self._block_changes:
-            return
-        self.color.setGreen(value)
-        self._on_change()
-
-    def _on_blue_change(self, value):
-        if self._block_changes:
-            return
-        self.color.setBlue(value)
-        self._on_change()
+        self.input_hue = input_hue
+        self.input_sat = input_sat
+        self.input_val = input_val
 
     def _on_change(self):
+        if self._block_changes:
+            return
+        self.color.setHsv(
+            self.input_hue.value(),
+            self.input_sat.value(),
+            self.input_val.value()
+        )
         self.value_changed.emit()
 
     def color_changed(self):
+        _cur_color = QtGui.QColor()
+        _cur_color.setHsv(
+            self.input_hue.value(),
+            self.input_sat.value(),
+            self.input_val.value()
+        )
         if (
-            self.input_red.value() == self.color.red()
-            and self.input_green.value() == self.color.green()
-            and self.input_blue.value() == self.color.blue()
+            _cur_color.red() == self.color.red()
+            and _cur_color.green() == self.color.green()
+            and _cur_color.blue() == self.color.blue()
         ):
             return
 
         self._block_changes = True
+        h, s, v, _ = self.color.getHsv()
 
-        self.input_red.setValue(self.color.red())
-        self.input_green.setValue(self.color.green())
-        self.input_blue.setValue(self.color.blue())
+        self.input_hue.setValue(h)
+        self.input_sat.setValue(s)
+        self.input_val.setValue(v)
 
         self._block_changes = False
 
@@ -400,13 +396,15 @@ class ColorInputsWidget(QtWidgets.QWidget):
         rgb_input = RGBInputs(color, self)
         cmyk_input = CMYKInputs(color, self)
         hsl_input = HSLInputs(color, self)
+        hsv_input = HSVInputs(color, self)
 
 
         input_fields = [
             hex_input,
             rgb_input,
             cmyk_input,
-            hsl_input
+            hsl_input,
+            hsv_input
         ]
 
         inputs_widget = QtWidgets.QWidget(self)
@@ -427,6 +425,8 @@ class ColorInputsWidget(QtWidgets.QWidget):
         hex_input.value_changed.connect(self._on_value_change)
         rgb_input.value_changed.connect(self._on_value_change)
         cmyk_input.value_changed.connect(self._on_value_change)
+        hsl_input.value_changed.connect(self._on_value_change)
+        hsv_input.value_changed.connect(self._on_value_change)
 
         self.input_fields = input_fields
 
@@ -434,6 +434,7 @@ class ColorInputsWidget(QtWidgets.QWidget):
         self.rgb_input = rgb_input
         self.cmyk_input = cmyk_input
         self.hsl_input = hsl_input
+        self.hsv_input = hsv_input
 
         self.color = color
 
