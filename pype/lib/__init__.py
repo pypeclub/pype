@@ -6,52 +6,80 @@ from .deprecated import (
     set_io_database
 )
 
+from .env_tools import (
+    env_value_to_bool,
+    get_paths_from_environ
+)
+
+from .avalon_context import (
+    is_latest,
+    any_outdated,
+    get_asset,
+    get_hierarchy,
+    get_linked_assets,
+    get_latest_version,
+    BuildWorkfile
+)
+
 from .hooks import PypeHook, execute_hook
 
 from .applications import (
     ApplicationLaunchFailed,
+    ApplictionExecutableNotFound,
+    ApplicationNotFound,
+    ApplicationManager,
     launch_application,
-    ApplicationAction
+    ApplicationAction,
+    _subprocess
 )
 
-from .plugin_tools import filter_pyblish_plugins
+from .plugin_tools import filter_pyblish_plugins, source_hash
 
-from .lib_old import (
-    _subprocess,
-    get_paths_from_environ,
-    get_ffmpeg_tool_path,
-    get_hierarchy,
-    add_tool_to_environment,
-    modified_environ,
-    pairwise,
-    grouper,
-    is_latest,
-    any_outdated,
-    _rreplace,
+from .path_tools import (
     version_up,
-    switch_item,
-    _get_host_name,
-    get_asset,
     get_version_from_path,
-    get_last_version_from_path,
-    get_subsets,
-    get_linked_assets,
-    BuildWorkfile,
-    ffprobe_streams,
-    source_hash,
-    get_latest_version
+    get_last_version_from_path
+)
+
+from .ffmpeg_utils import (
+    get_ffmpeg_tool_path,
+    ffprobe_streams
 )
 
 __all__ = [
     "get_avalon_database",
     "set_io_database",
 
+    "env_value_to_bool",
+    "get_paths_from_environ",
+
+    "is_latest",
+    "any_outdated",
+    "get_asset",
+    "get_hierarchy",
+    "get_linked_assets",
+    "get_latest_version",
+    "BuildWorkfile",
+
     "PypeHook",
     "execute_hook",
 
     "ApplicationLaunchFailed",
+    "ApplictionExecutableNotFound",
+    "ApplicationNotFound",
+    "ApplicationManager",
     "launch_application",
     "ApplicationAction",
 
-    "filter_pyblish_plugins"
+    "filter_pyblish_plugins",
+
+    "version_up",
+    "get_version_from_path",
+    "get_last_version_from_path",
+
+    "ffprobe_streams",
+    "get_ffmpeg_tool_path",
+
+    "source_hash",
+    "_subprocess"
 ]

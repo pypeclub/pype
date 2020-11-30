@@ -100,6 +100,8 @@ class SettingObject:
         self._is_nullable = False
         self._as_widget = False
         self._is_group = False
+        self._roles = None
+        self.hidden_by_role = False
 
         # If value should be stored to environments
         self._env_group_key = None
@@ -125,6 +127,13 @@ class SettingObject:
         # Only for develop mode
         self.defaults_not_set = False
 
+    def available_for_role(self, role_name=None):
+        if not self._roles:
+            return True
+        if role_name is None:
+            role_name = self.user_role
+        return role_name in self._roles
+
     def initial_attributes(self, input_data, parent, as_widget):
         """Prepare attributes based on entered arguments.
 
@@ -136,10 +145,14 @@ class SettingObject:
         self._parent = parent
         self._as_widget = as_widget
 
+        self._roles = input_data.get("roles")
+        if self._roles is not None and not isinstance(self._roles, list):
+            self._roles = [self._roles]
+
         self._is_group = input_data.get("is_group", False)
+        self._env_group_key = input_data.get("env_group_key")
         # TODO not implemented yet
         self._is_nullable = input_data.get("is_nullable", False)
-        self._env_group_key = input_data.get("env_group_key")
 
         if self.is_environ:
             if not self.allow_to_environment:
@@ -147,11 +160,6 @@ class SettingObject:
                     "Item {} does not allow to store environment values"
                 ).format(input_data["type"]))
 
-            if self.as_widget:
-                raise TypeError((
-                    "Item is used as widget and"
-                    " marked to store environments at the same time."
-                ))
             self.add_environ_field(self)
 
         any_parent_as_widget = parent.as_widget
@@ -166,15 +174,19 @@ class SettingObject:
 
         self._any_parent_is_group = any_parent_is_group
 
+        if not self.available_for_role():
+            self.hide()
+            self.hidden_by_role = True
+
     @property
-    def develop_mode(self):
-        """Tool is in develop mode or not.
+    def user_role(self):
+        """Tool is running with any user role.
 
         Returns:
-            bool
+            str: user role as string.
 
         """
-        return self._parent.develop_mode
+        return self._parent.user_role
 
     @property
     def log(self):
@@ -211,11 +223,19 @@ class SettingObject:
 
     @property
     def is_environ(self):
-        return self._env_group_key is not None
+        return self.env_group_key is not None
 
     @property
     def env_group_key(self):
         return self._env_group_key
+
+    @env_group_key.setter
+    def env_group_key(self, value):
+        if value is not None and not isinstance(value, str):
+            raise TypeError(
+                "Expected 'None' of 'str'. Got {}".format(str(type(value)))
+            )
+        self._env_group_key = value
 
     def add_environ_field(self, input_field):
         self._parent.add_environ_field(input_field)
@@ -659,7 +679,7 @@ class InputObject(SettingObject):
             value = parent_values.get(self.key, NOT_SET)
 
         if value is NOT_SET:
-            if self.develop_mode:
+            if self.available_for_role("developer"):
                 self.defaults_not_set = True
                 value = self.default_input_value
                 if value is NOT_SET:
@@ -1000,7 +1020,6 @@ class TextWidget(QtWidgets.QWidget, InputObject):
         super(TextWidget, self).__init__(parent_widget)
 
         self.initial_attributes(input_data, parent, as_widget)
-
         self.multiline = input_data.get("multiline", False)
         placeholder = input_data.get("placeholder")
 
@@ -1270,6 +1289,7 @@ class RawJsonWidget(QtWidgets.QWidget, InputObject):
             QtWidgets.QSizePolicy.Minimum,
             QtWidgets.QSizePolicy.MinimumExpanding
         )
+        self._is_invalid = self.input_field.has_invalid_value()
 
         self.setFocusProxy(self.input_field)
 
@@ -1312,12 +1332,14 @@ class RawJsonWidget(QtWidgets.QWidget, InputObject):
 
     def config_value(self):
         value = self.item_value()
-        value[METADATA_KEY] = {
-            "environments": {
-                self.env_group_key: list(value.keys())
+        if self.is_environ:
+            value[METADATA_KEY] = {
+                "environments": {
+                    self.env_group_key: list(value.keys())
+                }
             }
-        }
         return {self.key: value}
+
 
 class ListItem(QtWidgets.QWidget, SettingObject):
     _btn_size = 20
@@ -1874,8 +1896,6 @@ class ListStrictWidget(QtWidgets.QWidget, InputObject):
         return self._default_input_value
 
     def set_value(self, value):
-        self.validate_value(value)
-
         if self._is_overriden:
             method_name = "apply_overrides"
         elif not self._has_studio_override:
@@ -1980,7 +2000,7 @@ class ModifiableDictItem(QtWidgets.QWidget, SettingObject):
         self.add_btn.clicked.connect(self.on_add_clicked)
         self.remove_btn.clicked.connect(self.on_remove_clicked)
 
-        self.key_input.textChanged.connect(self._on_value_change)
+        self.key_input.textChanged.connect(self._on_key_change)
         self.value_input.value_changed.connect(self._on_value_change)
 
         self.origin_key = NOT_SET
@@ -1998,6 +2018,11 @@ class ModifiableDictItem(QtWidgets.QWidget, SettingObject):
         if self.is_key_duplicated:
             return True
         return False
+
+    def _on_key_change(self):
+        if self.value_is_env_group:
+            self.value_input.env_group_key = self.key_input.text()
+        self._on_value_change()
 
     def _on_value_change(self, item=None):
         self.update_style()
@@ -2017,6 +2042,10 @@ class ModifiableDictItem(QtWidgets.QWidget, SettingObject):
         self.origin_key = key
         self.key_input.setText(key)
         self.value_input.apply_overrides(value)
+
+    @property
+    def value_is_env_group(self):
+        return self._parent.value_is_env_group
 
     @property
     def is_group(self):
@@ -2116,6 +2145,7 @@ class ModifiableDict(QtWidgets.QWidget, InputObject):
         self.input_fields = []
 
         self.key = input_data["key"]
+        self.value_is_env_group = input_data.get("value_is_env_group") or False
 
         object_type = input_data["object_type"]
         if isinstance(object_type, dict):
@@ -2133,6 +2163,9 @@ class ModifiableDict(QtWidgets.QWidget, InputObject):
                 ))
                 self.item_schema.update(input_modifiers)
 
+        if self.value_is_env_group:
+            self.item_schema["env_group_key"] = ""
+
         if input_data.get("highlight_content", False):
             content_state = "hightlighted"
             bottom_margin = 5
@@ -2144,24 +2177,22 @@ class ModifiableDict(QtWidgets.QWidget, InputObject):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
+        label = input_data.get("label")
+
         if as_widget:
             body_widget = None
             self.label_widget = label_widget
+
+        elif label is None:
+            body_widget = None
+            self.label_widget = None
         else:
             body_widget = ExpandingWidget(input_data["label"], self)
             main_layout.addWidget(body_widget)
 
-            self.body_widget = body_widget
             self.label_widget = body_widget.label_widget
 
-            collapsable = input_data.get("collapsable", True)
-            if collapsable:
-                collapsed = input_data.get("collapsed", True)
-                if not collapsed:
-                    body_widget.toggle_content()
-
-            else:
-                body_widget.hide_toolbox(hide_content=False)
+        self.body_widget = body_widget
 
         if body_widget is None:
             content_parent_widget = self
@@ -2182,6 +2213,16 @@ class ModifiableDict(QtWidgets.QWidget, InputObject):
         self.body_widget = body_widget
         self.content_widget = content_widget
         self.content_layout = content_layout
+
+        if body_widget:
+            collapsable = input_data.get("collapsable", True)
+            if collapsable:
+                collapsed = input_data.get("collapsed", True)
+                if not collapsed:
+                    body_widget.toggle_content()
+
+            else:
+                body_widget.hide_toolbox(hide_content=False)
 
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
@@ -2294,6 +2335,18 @@ class ModifiableDict(QtWidgets.QWidget, InputObject):
             output.update(item.config_value())
         return output
 
+    def config_value(self):
+        output = self.item_value()
+        if self.value_is_env_group:
+            for key, value in tuple(output.items()):
+                value[METADATA_KEY] = {
+                    "environments": {
+                        key: list(value.keys())
+                    }
+                }
+                output[key] = value
+        return {self.key: output}
+
     def add_row(self, row=None, key=None, value=None, is_empty=False):
         # Create new item
         item_widget = ModifiableDictItem(
@@ -2383,75 +2436,95 @@ class DictWidget(QtWidgets.QWidget, SettingObject):
         self.checkbox_widget = None
         self.checkbox_key = input_data.get("checkbox_key")
 
-        self.label_widget = label_widget
+        if not self.as_widget:
+            self.key = input_data["key"]
 
-        if self.as_widget:
-            self._ui_as_widget(input_data)
+        if not self.as_widget and input_data.get("label") is None:
+            self._ui_item_without_label()
         else:
-            self._ui_as_item(input_data)
-
-    def _ui_as_item(self, input_data):
-        self.key = input_data["key"]
-        if input_data.get("highlight_content", False):
-            content_state = "hightlighted"
-            bottom_margin = 5
-        else:
-            content_state = ""
-            bottom_margin = 0
-
-        main_layout = QtWidgets.QHBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
-
-        body_widget = ExpandingWidget(input_data["label"], self)
-
-        main_layout.addWidget(body_widget)
-
-        content_widget = QtWidgets.QWidget(body_widget)
-        content_widget.setObjectName("ContentWidget")
-        content_widget.setProperty("content_state", content_state)
-        content_layout = QtWidgets.QGridLayout(content_widget)
-        content_layout.setContentsMargins(CHILD_OFFSET, 5, 0, bottom_margin)
-
-        body_widget.set_content_widget(content_widget)
-
-        self.body_widget = body_widget
-        self.content_widget = content_widget
-        self.content_layout = content_layout
-
-        self.label_widget = body_widget.label_widget
+            self._ui_item_or_as_widget(input_data, label_widget)
 
         for child_data in input_data.get("children", []):
             self.add_children_gui(child_data)
 
-        collapsable = input_data.get("collapsable", True)
-        if len(self.input_fields) == 1 and self.checkbox_widget:
-            body_widget.hide_toolbox(hide_content=True)
+        any_visible = False
+        for input_field in self.input_fields:
+            if not input_field.hidden_by_role:
+                any_visible = True
+                break
 
-        elif collapsable:
-            collapsed = input_data.get("collapsed", True)
-            if not collapsed:
-                body_widget.toggle_content()
+        if not any_visible:
+            self.hide()
+
+    def _ui_item_without_label(self):
+        if self._is_group:
+            raise TypeError(
+                "Dictionary without label can't be marked as group input."
+            )
+
+        self.setObjectName("DictInvisible")
+
+        self.label_widget = None
+        self.body_widget = None
+        self.content_layout = QtWidgets.QGridLayout(self)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout.setSpacing(5)
+
+    def _ui_item_or_as_widget(self, input_data, label_widget):
+        content_widget = QtWidgets.QWidget(self)
+
+        if self.as_widget:
+            content_widget.setObjectName("DictAsWidgetBody")
+            show_borders = str(
+                int(input_data.get("show_borders", True))
+            )
+            content_widget.setProperty("show_borders", show_borders)
+            content_layout_margins = (5, 5, 5, 5)
+            main_layout_spacing = 5
+            body_widget = None
+
         else:
-            body_widget.hide_toolbox(hide_content=False)
+            content_widget.setObjectName("ContentWidget")
+            if input_data.get("highlight_content", False):
+                content_state = "hightlighted"
+                bottom_margin = 5
+            else:
+                content_state = ""
+                bottom_margin = 0
+            content_widget.setProperty("content_state", content_state)
+            content_layout_margins = (CHILD_OFFSET, 5, 0, bottom_margin)
+            main_layout_spacing = 0
 
-    def _ui_as_widget(self, input_data):
-        body = QtWidgets.QWidget(self)
-        body.setObjectName("DictAsWidgetBody")
-        show_borders = str(int(input_data.get("show_borders", True)))
-        body.setProperty("show_borders", show_borders)
+            body_widget = ExpandingWidget(input_data["label"], self)
+            label_widget = body_widget.label_widget
+            body_widget.set_content_widget(content_widget)
 
-        content_layout = QtWidgets.QGridLayout(body)
-        content_layout.setContentsMargins(5, 5, 5, 5)
+        content_layout = QtWidgets.QGridLayout(content_widget)
+        content_layout.setContentsMargins(*content_layout_margins)
+
+        main_layout = QtWidgets.QHBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(main_layout_spacing)
+        if not body_widget:
+            main_layout.addWidget(content_widget)
+        else:
+            main_layout.addWidget(body_widget)
+
+        self.label_widget = label_widget
+        self.body_widget = body_widget
         self.content_layout = content_layout
 
-        layout = QtWidgets.QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
-        layout.addWidget(body)
+        if body_widget:
+            collapsable = input_data.get("collapsable", True)
+            if len(self.input_fields) == 1 and self.checkbox_widget:
+                body_widget.hide_toolbox(hide_content=True)
 
-        for child_configuration in input_data["children"]:
-            self.add_children_gui(child_configuration)
+            elif collapsable:
+                collapsed = input_data.get("collapsed", True)
+                if not collapsed:
+                    body_widget.toggle_content()
+            else:
+                body_widget.hide_toolbox(hide_content=False)
 
     def add_children_gui(self, child_configuration):
         item_type = child_configuration["type"]
@@ -2471,6 +2544,11 @@ class DictWidget(QtWidgets.QWidget, SettingObject):
                         "SCHEMA BUG: Dictionary item has set as checkbox"
                         " item invalid type \"{}\". Expected \"boolean\"."
                     ).format(child_configuration["type"]))
+                elif self.body_widget is None:
+                    self.log.warning((
+                        "SCHEMA BUG: Dictionary item has set checkbox"
+                        " item but item does not have label."
+                    ).format(child_configuration["type"]))
                 else:
                     return self._add_checkbox_child(child_configuration)
 
@@ -2485,6 +2563,8 @@ class DictWidget(QtWidgets.QWidget, SettingObject):
         item.value_changed.connect(self._on_value_change)
 
         if label_widget:
+            if item.hidden_by_role:
+                label_widget.hide()
             label_widget.input_field = item
             self.content_layout.addWidget(item, row, 1, 1, 1)
         else:
@@ -2659,7 +2739,7 @@ class DictWidget(QtWidgets.QWidget, SettingObject):
 
     def update_style(self, is_overriden=None):
         # TODO add style update when used as widget
-        if self.as_widget:
+        if not self.body_widget:
             return
 
         child_has_studio_override = self.child_has_studio_override
@@ -2745,288 +2825,6 @@ class DictWidget(QtWidgets.QWidget, SettingObject):
             # NOTE merge is custom function which merges 2 dicts
             output.update(input_field.config_value())
         return output
-
-    def _override_values(self, project_overrides):
-        values = {}
-        groups = []
-        for input_field in self.input_fields:
-            if project_overrides:
-                value, is_group = input_field.overrides()
-            else:
-                value, is_group = input_field.studio_overrides()
-            if value is NOT_SET:
-                continue
-
-            if METADATA_KEY in value and METADATA_KEY in values:
-                new_metadata = value.pop(METADATA_KEY)
-                values[METADATA_KEY] = self.merge_metadata(
-                    values[METADATA_KEY], new_metadata
-                )
-
-            values.update(value)
-            if is_group:
-                groups.extend(value.keys())
-
-        if groups:
-            if METADATA_KEY not in values:
-                values[METADATA_KEY] = {}
-            values[METADATA_KEY]["groups"] = groups
-        return {self.key: values}, self.is_group
-
-    def studio_overrides(self):
-        if (
-            not (self.as_widget or self.any_parent_as_widget)
-            and not self.has_studio_override
-            and not self.child_has_studio_override
-        ):
-            return NOT_SET, False
-        return self._override_values(False)
-
-    def overrides(self):
-        if not self.is_overriden and not self.child_overriden:
-            return NOT_SET, False
-        return self._override_values(True)
-
-
-class DictInvisible(QtWidgets.QWidget, SettingObject):
-    # TODO is not overridable by itself
-    value_changed = QtCore.Signal(object)
-    allow_actions = False
-    expand_in_grid = True
-    valid_value_types = (dict, type(NOT_SET))
-
-    def __init__(
-        self, input_data, parent,
-        as_widget=False, label_widget=None, parent_widget=None
-    ):
-        if parent_widget is None:
-            parent_widget = parent
-        super(DictInvisible, self).__init__(parent_widget)
-        self.setObjectName("DictInvisible")
-
-        self.initial_attributes(input_data, parent, as_widget)
-
-        if self._is_group:
-            raise TypeError("DictInvisible can't be marked as group input.")
-
-        self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
-
-        layout = QtWidgets.QGridLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
-
-        self.content_layout = layout
-
-        self.input_fields = []
-
-        self.key = input_data["key"]
-
-        for child_data in input_data.get("children", []):
-            self.add_children_gui(child_data)
-
-    def add_children_gui(self, child_configuration):
-        item_type = child_configuration["type"]
-        klass = TypeToKlass.types.get(item_type)
-
-        row = self.content_layout.rowCount()
-        if not getattr(klass, "is_input_type", False):
-            item = klass(child_configuration, self)
-            self.content_layout.addWidget(item, row, 0, 1, 2)
-            return item
-
-        label_widget = None
-        if not klass.expand_in_grid:
-            label = child_configuration.get("label")
-            if label is not None:
-                label_widget = GridLabelWidget(label, self)
-                self.content_layout.addWidget(label_widget, row, 0, 1, 1)
-
-        item = klass(child_configuration, self, label_widget=label_widget)
-        item.value_changed.connect(self._on_value_change)
-
-        if label_widget:
-            label_widget.input_field = item
-            self.content_layout.addWidget(item, row, 1, 1, 1)
-        else:
-            self.content_layout.addWidget(item, row, 0, 1, 2)
-
-        self.input_fields.append(item)
-        return item
-
-    def update_style(self, *args, **kwargs):
-        return
-
-    @property
-    def child_has_studio_override(self):
-        for input_field in self.input_fields:
-            if (
-                input_field.has_studio_override
-                or input_field.child_has_studio_override
-            ):
-                return True
-        return False
-
-    @property
-    def child_modified(self):
-        for input_field in self.input_fields:
-            if input_field.child_modified:
-                return True
-        return False
-
-    @property
-    def child_overriden(self):
-        for input_field in self.input_fields:
-            if input_field.is_overriden or input_field.child_overriden:
-                return True
-        return False
-
-    @property
-    def child_invalid(self):
-        for input_field in self.input_fields:
-            if input_field.child_invalid:
-                return True
-        return False
-
-    def get_invalid(self):
-        output = []
-        for input_field in self.input_fields:
-            output.extend(input_field.get_invalid())
-        return output
-
-    def item_value(self):
-        output = {}
-        for input_field in self.input_fields:
-            # TODO maybe merge instead of update should be used
-            # NOTE merge is custom function which merges 2 dicts
-            output.update(input_field.config_value())
-        return output
-
-    def _on_value_change(self, item=None):
-        if self.ignore_value_changes:
-            return
-
-        if self.is_group and not self.any_parent_as_widget:
-            if self.is_overidable:
-                self._is_overriden = True
-            else:
-                self._has_studio_override = True
-            self.hierarchical_style_update()
-
-        self.value_changed.emit(self)
-
-    def hierarchical_style_update(self):
-        for input_field in self.input_fields:
-            input_field.hierarchical_style_update()
-        self.update_style()
-
-    def remove_overrides(self):
-        self._is_overriden = False
-        self._is_modified = False
-        for input_field in self.input_fields:
-            input_field.remove_overrides()
-
-    def reset_to_pype_default(self):
-        for input_field in self.input_fields:
-            input_field.reset_to_pype_default()
-        self._has_studio_override = False
-
-    def set_studio_default(self):
-        for input_field in self.input_fields:
-            input_field.set_studio_default()
-
-        if self.is_group:
-            self._has_studio_override = True
-
-    def discard_changes(self):
-        self._is_modified = False
-        self._is_overriden = self._was_overriden
-        self._has_studio_override = self._had_studio_override
-
-        for input_field in self.input_fields:
-            input_field.discard_changes()
-
-        self._is_modified = self.child_modified
-        if not self.is_overidable and self.as_widget:
-            if self.has_studio_override:
-                self._is_modified = self.studio_value != self.item_value()
-            else:
-                self._is_modified = self.default_value != self.item_value()
-
-        self._state = None
-        self._is_overriden = self._was_overriden
-
-    def set_as_overriden(self):
-        if self.is_overriden:
-            return
-
-        if self.is_group:
-            self._is_overriden = True
-            return
-
-        for item in self.input_fields:
-            item.set_as_overriden()
-
-    def update_default_values(self, parent_values):
-        value = NOT_SET
-        if self.as_widget:
-            value = parent_values
-        elif parent_values is not NOT_SET:
-            value = parent_values.get(self.key, NOT_SET)
-
-        try:
-            self.validate_value(value)
-        except InvalidValueType as exc:
-            value = NOT_SET
-            self.log.warning(exc.msg)
-
-        for item in self.input_fields:
-            item.update_default_values(value)
-
-    def update_studio_values(self, parent_values):
-        value = NOT_SET
-        if parent_values is not NOT_SET:
-            value = parent_values.get(self.key, NOT_SET)
-
-        try:
-            self.validate_value(value)
-        except InvalidValueType as exc:
-            value = NOT_SET
-            self.log.warning(exc.msg)
-
-        for item in self.input_fields:
-            item.update_studio_values(value)
-
-    def apply_overrides(self, parent_values):
-        # Make sure this is set to False
-        self._state = None
-        self._child_state = None
-
-        metadata = {}
-        groups = tuple()
-        override_values = NOT_SET
-        if parent_values is not NOT_SET:
-            metadata = parent_values.get(METADATA_KEY) or metadata
-            groups = metadata.get("groups") or groups
-            override_values = parent_values.get(self.key, override_values)
-
-        self._is_overriden = self.key in groups
-
-        try:
-            self.validate_value(override_values)
-        except InvalidValueType as exc:
-            override_values = NOT_SET
-            self.log.warning(exc.msg)
-
-        for item in self.input_fields:
-            item.apply_overrides(override_values)
-
-        if not self._is_overriden:
-            self._is_overriden = (
-                self.is_group
-                and self.is_overidable
-                and self.child_overriden
-            )
-        self._was_overriden = bool(self._is_overriden)
 
     def _override_values(self, project_overrides):
         values = {}
@@ -3202,7 +3000,7 @@ class PathWidget(QtWidgets.QWidget, SettingObject):
             value = parent_values.get(self.key, NOT_SET)
 
         if value is NOT_SET:
-            if self.develop_mode:
+            if self.available_for_role("developer"):
                 self.defaults_not_set = True
                 value = self.default_input_value
                 if value is NOT_SET:
@@ -3450,6 +3248,15 @@ class DictFormWidget(QtWidgets.QWidget, SettingObject):
 
         self.setAttribute(QtCore.Qt.WA_TranslucentBackground)
 
+        any_visible = False
+        for input_field in self.input_fields:
+            if not input_field.hidden_by_role:
+                any_visible = True
+                break
+
+        if not any_visible:
+            self.hide()
+
     def add_children_gui(self, child_configuration):
         item_type = child_configuration["type"]
         # Pop label to not be set in child
@@ -3461,6 +3268,9 @@ class DictFormWidget(QtWidgets.QWidget, SettingObject):
 
         item = klass(child_configuration, self, label_widget=label_widget)
         label_widget.item = item
+
+        if item.hidden_by_role:
+            label_widget.hide()
 
         item.value_changed.connect(self._on_value_change)
         self.content_layout.addRow(label_widget, item)
@@ -3636,7 +3446,7 @@ class DictFormWidget(QtWidgets.QWidget, SettingObject):
 class LabelWidget(QtWidgets.QWidget):
     is_input_type = False
 
-    def __init__(self, configuration, parent=None):
+    def __init__(self, configuration, parent):
         super(LabelWidget, self).__init__(parent)
         self.setObjectName("LabelWidget")
 
@@ -3647,12 +3457,23 @@ class LabelWidget(QtWidgets.QWidget):
         label_widget = QtWidgets.QLabel(label, self)
         layout.addWidget(label_widget)
 
+        # Role handling
+        roles = configuration.get("roles")
+        if roles is not None and not isinstance(roles, list):
+            roles = [roles]
+
+        if roles and parent.user_role not in roles:
+            self.hide()
+            self.hidden_by_role = True
+        else:
+            self.hidden_by_role = False
+
 
 class SplitterWidget(QtWidgets.QWidget):
     is_input_type = False
     _height = 2
 
-    def __init__(self, configuration, parent=None):
+    def __init__(self, configuration, parent):
         super(SplitterWidget, self).__init__(parent)
 
         layout = QtWidgets.QHBoxLayout(self)
@@ -3662,6 +3483,17 @@ class SplitterWidget(QtWidgets.QWidget):
         splitter_item.setMinimumHeight(self._height)
         splitter_item.setMaximumHeight(self._height)
         layout.addWidget(splitter_item)
+
+        # Role handling
+        roles = configuration.get("roles")
+        if roles is not None and not isinstance(roles, list):
+            roles = [roles]
+
+        if roles and parent.user_role not in roles:
+            self.hide()
+            self.hidden_by_role = True
+        else:
+            self.hidden_by_role = False
 
 
 TypeToKlass.types["boolean"] = BooleanWidget
@@ -3674,11 +3506,13 @@ TypeToKlass.types["list-strict"] = ListStrictWidget
 TypeToKlass.types["enum"] = EnumeratorWidget
 TypeToKlass.types["dict-modifiable"] = ModifiableDict
 # DEPRECATED - remove when removed from schemas
+TypeToKlass.types["splitter"] = SplitterWidget
 TypeToKlass.types["dict-item"] = DictWidget
+TypeToKlass.types["dict-invisible"] = DictWidget
+# ---------------------------------------------
 TypeToKlass.types["dict"] = DictWidget
-TypeToKlass.types["dict-invisible"] = DictInvisible
 TypeToKlass.types["path-widget"] = PathWidget
 TypeToKlass.types["form"] = DictFormWidget
 
 TypeToKlass.types["label"] = LabelWidget
-TypeToKlass.types["splitter"] = SplitterWidget
+TypeToKlass.types["separator"] = SplitterWidget
