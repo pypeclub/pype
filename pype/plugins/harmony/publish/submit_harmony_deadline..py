@@ -3,12 +3,25 @@
 import os
 from pathlib import Path
 from collections import OrderedDict
+from zipfile import ZipFile, is_zipfile
 
 import attr
 import pyblish.api
 
 import pype.lib.abstract_submit_deadline
 from pype.lib.abstract_submit_deadline import DeadlineJobInfo
+
+
+class _ZipFile(ZipFile):
+    """Extended check for windows invalid characters."""
+
+    # this is extending default zipfile table for few invalid characters
+    # that can come from Mac
+    _windows_illegal_characters = ":<>|\"?*\r\n\x00"
+    _windows_illegal_name_trans_table = str.maketrans(
+        _windows_illegal_characters,
+        "_" * len(_windows_illegal_characters)
+    )
 
 
 @attr.s
@@ -238,18 +251,83 @@ class HarmonySubmitDeadline(
             self._instance.data["frameStart"],
             self._instance.data["frameEnd"]
         )
+        # for now, get those from presets. Later on it should be
+        # configurable in Harmony UI directly.
         job_info.Priority = self.priority
         job_info.Pool = self.primary_pool
         job_info.SecondaryPool = self.secondary_pool
 
         return job_info
 
+    def _unzip_scene_file(self, published_scene: Path) -> Path:
+        """Unzip scene zip file to its directory.
+
+        Unzip scene file (if it is zip file) to its current directory and
+        return path to xstage file there. Xstage file is determined by its
+        name.
+
+        Args:
+            published_scene (Path): path to zip file.
+
+        Returns:
+            Path: The path to unzipped xstage.
+        """
+        # if not zip, bail out.
+        if "zip" not in published_scene.suffix or not is_zipfile(
+            published_scene.as_posix()
+        ):
+            self.log.error("Published scene is not in zip.")
+            self.log.error(published_scene)
+            raise AssertionError("invalid scene format")
+
+        xstage_path = (
+            published_scene
+            / published_scene.stem
+            / f"{published_scene.stem}.xstage"
+        )
+
+        with _ZipFile(published_scene, "r") as zip_ref:
+            zip_ref.extractall(xstage_path.parent.as_posix())
+
+        # find any xstage files in directory, prefer the one with the same name
+        # as directory (plus extension)
+        xstage_files = []
+        for scene in xstage_path.parent.iterdir():
+            if scene.suffix in ".xstage":
+                xstage_files.append(scene)
+
+        # there must be at least one (but maybe not more?) xstage file
+        if not xstage_files:
+            self.log.error("No xstage files found in zip")
+            raise AssertionError("Invalid scene archive")
+
+        ideal_scene = False
+        # find the one with the same name as zip. In case there can be more
+        # then one xtage file.
+        for scene in xstage_files:
+            # if /foo/bar/baz.zip == /foo/bar/baz/baz.xstage
+            #             ^^^                     ^^^
+            if scene.stem == published_scene.stem:
+                xstage_path = scene
+                ideal_scene = True
+
+        # but sometimes xstage file has different name then zip - in that case
+        # use that one.
+        if not ideal_scene:
+            xstage_path = xstage_files[0]
+
+        return xstage_path
+
     def get_plugin_info(self):
         work_scene = Path(self._instance.data["source"])
+
+        # this is path to published scene workfile _ZIP_. Before
+        # rendering, we need to unzip it.
         published_scene = Path(
             self.from_published_scene(False))
-
-        render_path = published_scene.parent / "render"
+        self.log.info(f"Processing {published_scene.as_posix()}")
+        xstage_path = self._unzip_scene_file(published_scene)
+        render_path = xstage_path.parent / "render"
 
         self.log.info("switching render paths for published scene:\n "
                       f"{work_scene.parent.as_posix()} -> "
@@ -258,10 +336,10 @@ class HarmonySubmitDeadline(
         new_expected_files = []
         for file in self._instance.data["expectedFiles"]:
             _file = str(Path(file).as_posix())
-            _work_path = str(work_scene.parent.as_posix())
-            _render_path = str(render_path.as_posix())
+            work_path = str(work_scene.parent.as_posix())
+            render_path = str(render_path.as_posix())
             new_expected_files.append(
-                _file.replace(_work_path, _render_path)
+                _file.replace(work_path, render_path)
             )
 
         self._instance.data["source"] = str(published_scene.as_posix())
@@ -286,4 +364,3 @@ class HarmonySubmitDeadline(
         )
 
         return harmony_plugin_info.serialize()
-
