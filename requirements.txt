@@ -1,4 +1,4 @@
-git+https://github.com/pypeclub/acre.git
+git+https://github.com/pypeclub/acre.git#egg=acre
 aiohttp_json_rpc
 appdirs
 arrow
@@ -15,7 +15,7 @@ google-api-python-client
 jsonschema
 keyring
 log4mongo
-git+https://github.com/pypeclub/OpenTimelineIO.git@develop
+git+https://github.com/pypeclub/OpenTimelineIO.git@develop#egg=opentimelineio
 pathlib2
 Pillow
 pyblish-base

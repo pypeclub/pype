@@ -89,8 +89,9 @@ Write-Host "OK [ $p ]" -ForegroundColor green
 
 Write-Host ">>> " -NoNewline -ForegroundColor green
 Write-Host "Entering venv ..."
+$venv_path = & pipenv --venv
 try {
-  . ("$($pype_root)\venv\Scripts\Activate.ps1")
+  . ("$($venv_path)\Scripts\Activate.ps1")
 }
 catch {
     Write-Host "!!! Failed to activate" -ForegroundColor red

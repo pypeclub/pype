@@ -147,24 +147,15 @@ Write-Host "OK [ $p ]" -ForegroundColor green
 
 Write-Host ">>> " -NoNewline -ForegroundColor green
 Write-Host "Entering venv ..."
+$venv_path = & pipenv --venv
 try {
-  . ("$($pype_root)\venv\Scripts\Activate.ps1")
+  . ("$($venv_path)\Scripts\Activate.ps1")
 }
 catch {
-  Write-Host "!!! Failed to activate" -ForegroundColor red
-  Write-Host ">>> " -NoNewline -ForegroundColor green
-  Write-Host "Trying to create env ..."
-  & "$($script_dir)\create_env.ps1"
-  try {
-    . ("$($pype_root)\venv\Scripts\Activate.ps1")
-  }
-  catch {
-      Write-Host "!!! Failed to activate" -ForegroundColor red
-      Write-Host $_.Exception.Message
-      Exit-WithCode 1
-  }
+    Write-Host "!!! Failed to activate" -ForegroundColor red
+    Write-Host $_.Exception.Message
+    Exit-WithCode 1
 }
-
 Write-Host ">>> " -NoNewline -ForegroundColor green
 Write-Host "Cleaning cache files ... " -NoNewline
 Get-ChildItem $pype_root -Filter "*.pyc" -Force -Recurse | Remove-Item -Force

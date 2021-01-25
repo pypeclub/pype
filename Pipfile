@@ -1,0 +1,54 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+acre = {git = "https://github.com/pypeclub/acre.git"}
+aiohttp-json-rpc = "*"
+appdirs = "*"
+arrow = "*"
+blessed = "*"
+certifi = "*"
+click = "*"
+clique = "==1.5.0"
+coverage = "*"
+flake8 = "*"
+ftrack-python-api = "==2.0.0"
+ffmpeg-python = "*"
+google-api-python-client = "*"
+jsonschema = "*"
+keyring = "*"
+log4mongo = "*"
+pathlib2 = "*"
+pyblish-base = "*"
+pycodestyle = "*"
+pydocstyle = "*"
+pylint = "*"
+pynput = "*"
+pymongo = "*"
+pytest = "*"
+pytest-cov = "*"
+pytest-print = "*"
+scandir = "*"
+speedcopy = "*"
+six = "*"
+sphinx-rtd-theme = "*"
+sphinxcontrib-websupport = "*"
+sphinx-qt-documentation = "*"
+"ruamel.yaml" = "*"
+recommonmark = "*"
+toml = "*"
+tqdm = "*"
+wsrpc-aiohttp = "*"
+cx-Freeze = "*"
+OpenTimelineIO = {ref = "develop", git = "https://github.com/pypeclub/OpenTimelineIO.git"}
+Pillow = "*"
+PyQt5 = "*"
+"Qt.py" = "*"
+Sphinx = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.7"

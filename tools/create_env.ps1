@@ -87,44 +87,23 @@ if(($matches[1] -lt 3) -or ($matches[2] -lt 7)) {
 }
 Write-Host "OK [ $p ]" -ForegroundColor green
 
-# Create venv directory if not exist
-if (-not (Test-Path -PathType Container -Path "$($pype_root)\venv")) {
-    New-Item -ItemType Directory -Force -Path "$($pype_root)\venv"
-}
-
-Write-Host "--- " -NoNewline -ForegroundColor yellow
-Write-Host "Cleaning venv directory ..."
-
-try {
-    Remove-Item -Recurse -Force "$($pype_root)\venv\*"
-}
-catch {
-    Write-Host "!!! " -NoNewline -ForegroundColor red
-    Write-Host "Cannot clean venv directory, possibly another process is using it."
-    Write-Host $_.Exception.Message
-    Exit-WithCode 1
-}
+# ensure pipenv
+& pip install pipenv
 
 Write-Host ">>> " -NoNewline -ForegroundColor green
 Write-Host "Creating virtual env ..."
-& python -m venv venv
+& pipenv install
 Write-Host ">>> " -NoNewline -ForegroundColor green
 Write-Host "Entering venv ..."
+$venv_path = & pipenv --venv
 try {
-  . ("$($pype_root)\venv\Scripts\Activate.ps1")
+  . ("$($venv_path)\Scripts\Activate.ps1")
 }
 catch {
     Write-Host "!!! Failed to activate" -ForegroundColor red
     Write-Host $_.Exception.Message
     Exit-WithCode 1
 }
-Write-Host ">>> " -NoNewline -ForegroundColor green
-Write-Host "Updating pip ..."
-& python -m pip install --upgrade pip
-
-Write-Host ">>> " -NoNewline -ForegroundColor green
-Write-Host "Installing packages to new venv ..."
-& pip install -r "$($pype_root)\requirements.txt"
 
 Write-Host ">>> " -NoNewline -ForegroundColor green
 Write-Host "Cleaning cache files ... " -NoNewline
