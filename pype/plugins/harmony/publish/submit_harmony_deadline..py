@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from collections import OrderedDict
 from zipfile import ZipFile, is_zipfile
+import re
 
 import attr
 import pyblish.api
@@ -369,6 +370,11 @@ class HarmonySubmitDeadline(
                 _file.replace(work_path_str, render_path_str)
             )
 
+        audio_file = self._instance.data.get("audioFile")
+        if audio_file:
+            abs_path = xstage_path.parent / audio_file
+            self._instance.context.data["audioFile"] = str(abs_path)
+
         self._instance.data["source"] = str(published_scene.as_posix())
         self._instance.data["expectedFiles"] = new_expected_files
         harmony_plugin_info = PluginInfo(
@@ -380,13 +386,14 @@ class HarmonySubmitDeadline(
             ResolutionY=self._instance.data["resolutionHeight"]
         )
 
-        dynamic_part = "{}.{}".format(
-            str(1).rjust(int(self._instance.data["leadingZeros"]) + 1, "0"),
-            self._instance.data["outputFormat"].lower())
+        pattern = '[0]{' + str(self._instance.data["leadingZeros"]) + \
+                  '}1\.[a-zA-Z]{3}'
+        render_prefix = re.sub(pattern, '',
+                               self._instance.data["expectedFiles"][0])
         harmony_plugin_info.set_output(
             self._instance.data["setMembers"][0],
             self._instance.data["outputFormat"],
-            self._instance.data["expectedFiles"][0].replace(dynamic_part, ''),
+            render_prefix,
             self._instance.data["outputType"],
             self._instance.data["leadingZeros"],
             self._instance.data["outputStartFrame"]

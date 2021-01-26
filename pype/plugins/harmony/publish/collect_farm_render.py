@@ -76,10 +76,15 @@ class CollectFarmRender(pype.lib.abstract_collect_render.
 
         # is sequence start node on write node offsetting whole sequence?
         expected_files = []
-        for frame in range(start, end):
+
+        # Harmony 17 needs at least one '.' in file_prefix, but not at end
+        file_prefix = info[0]
+        file_prefix += '.temp'
+
+        for frame in range(start, end + 1):
             expected_files.append(
                 path / "{}{}.{}".format(
-                    info[0],
+                    file_prefix,
                     str(frame).rjust(int(info[2]) + 1, "0"),
                     ext
                 )
@@ -121,12 +126,13 @@ class CollectFarmRender(pype.lib.abstract_collect_render.
 
             # TODO: handle pixel aspect and frame step
             # TODO: set Deadline stuff (pools, priority, etc. by presets)
+            subset_name = node.split("/")[1].replace('Farm', '')
             render_instance = HarmonyRenderInstance(
                 version=version,
                 time=api.time(),
                 source=context.data["currentFile"],
-                label=node.split("/")[1],
-                subset=node.split("/")[1],
+                label=subset_name,
+                subset=subset_name,
                 asset=api.Session["AVALON_ASSET"],
                 attachTo=False,
                 setMembers=[node],
